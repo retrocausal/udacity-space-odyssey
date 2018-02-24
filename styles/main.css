@@ -17,9 +17,23 @@ BODY {
 
 main {
   padding: 0;
-  min-width: 99vw;
-  width: 99vw;
+  min-width: 100%;
+  width: 100%;
   margin: auto;
   min-height: 78vh;
   height: 78vh;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: auto;
+  max-width: 100%;
+}
+
+img {
+  max-width: 100%;
+  width: auto;
 }

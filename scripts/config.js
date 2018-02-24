@@ -1,10 +1,18 @@
 const spaceSprites = [
-      'space2.png',
-      'space.png',
-      'space1.png'
+      'empty-space.jpg',
+      'space.jpg',
+      'more-space.jpg'
+];
+const spaceTimeColumn = [
+    //'empty-space.jpg', // Top row is space illustration
+    'more-space.jpg'
 ];
 
+const config = {
+  spaceSprites,
+  spaceTimeColumn
+}
 $(() => {
-  new Game(spaceSprites)
+  new Game(config)
     .build();
 });
