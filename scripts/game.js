@@ -1,24 +1,35 @@
-const Game = function (configurations) {
-  const {
-    spaceSprites,
-    spaceTimeColumn
-  } = configurations;
+/*
+ *@Game is the constructor for an engine behind all that has to work, for the game to progress
+ *It defines the various canvasses used, creates game entities, and maintains
+ *their states at all times.
+ *It constructs a game object, that defines critical helpers at the very minimum
+ */
+const Game = function () {
+  //define a place to look for all the images to be used at various times.
+  /*NOTE This also serves, as a prefix for the cache key to be generated per asset cached*/
   this.staticAssetsRoot = "./assets/rasters/";
+};
+Game.prototype.init = function () {
+  //gather configurables
+  const Configuration = Configurations.get(this)
+    .configuration;
+  //define a cache, to cache media
   this.cache = new Cache(this.staticAssetsRoot);
-  this.spaceSprites = spaceSprites;
-  this.spaceTimeColumn = spaceTimeColumn;
-};
-
-
-Game.prototype.build = function () {
-  this.spaceTimeContinuum = this.generateSpace();
-};
-
-
-Game.prototype.generateSpace = function () {
-  const spaceTimeContinuum = new SpaceTimeContinuum()
+  this.spaceSprites = Configuration.scenary.spaceSprites;
+  this.spaceTimeColumn = Configuration.scenary.spaceTimeColumn;
+  //build spacetime
+  const SpaceTime = new SpaceTimeContinuum()
     .init()
-    .selfAttach();
+    .attach();
+  this.spaceTimeContinuum = SpaceTime;
+  this.renderSpace();
+  return this;
+};
+/*
+ *@generateSpace asynchronously builds and renders space
+ */
+Game.prototype.renderSpace = function () {
+  this.spaceTimeContinuum.identify("space");
   this.cache.add(this.spaceSprites)
     .then(cache_keys => {
       const assets = this.spaceTimeColumn.map(rowOfColumn => {
@@ -26,20 +37,18 @@ Game.prototype.generateSpace = function () {
         return this.cache.retrieve(key)
           .value;
       });
-      return spaceTimeContinuum.constructScene(assets);
+      return this.spaceTimeContinuum.constructScene(assets);
     })
-    .then(filmOfReel => {
-      spaceTimeContinuum.identify("space");
-      const animation = spaceTimeContinuum.initScrollableSpace(filmOfReel);
-      return this.animate(spaceTimeContinuum, animation);
+    .then(scene => {
+      const animation = this.spaceTimeContinuum.initScrollableSpace(scene);
+      return this.animate(this.spaceTimeContinuum, animation);
     });
-  return spaceTimeContinuum.getContext();
 };
 
 
 Game.prototype.animate = function (helperObject, animation) {
   //Time when animation begins
-  let then;
+  let then, time = 0;
   //Time stamp on the last frame
   let timeLastFrame = 0;
   /*
@@ -51,8 +60,8 @@ Game.prototype.animate = function (helperObject, animation) {
   const animate = (now) => {
     window.requestAnimationFrame(animate);
     then = then || now;
-    animation.dt = (now - then) / 1000;
-    return helperObject.requestAnimationFrame(animation);
+    time = (now - then) / 1000;
+    return helperObject.requestAnimationFrame(animation, time);
   };
   //start animation
   window.requestAnimationFrame(animate);
