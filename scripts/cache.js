@@ -68,7 +68,8 @@ class Cache {
         if (!inCache) {
           const asset = {
             url,
-            name: next.value
+            name: (next.value.substr(0, next.value.lastIndexOf('.')) || next.value),
+            extension: (next.value.substr(next.value.lastIndexOf('.') + 1, next.value.length) || 'png')
           };
           this.cacheAsset(asset);
         }

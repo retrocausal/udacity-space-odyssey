@@ -24,7 +24,7 @@ main {
   height: 78vh;
 }
 
-canvas {
+canvas, .options {
   position: absolute;
   top: 0;
   left: 0;
@@ -33,7 +33,35 @@ canvas {
   max-width: 100%;
 }
 
-img {
+.options {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  z-index: 2;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.option-header {
+  width: 100%;
+  z-index: 2;
+  margin: 40px 0;
+}
+
+.responsive {
+  max-width: 100%;
+  width: auto;
+  height: calc((9/16)*50vw);
+}
+
+.responsive-container {
+  width: 50vw;
+}
+
+figure, picture {
   max-width: 100%;
   width: auto;
 }

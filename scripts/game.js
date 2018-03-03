@@ -15,20 +15,29 @@ Game.prototype.init = function () {
     .configuration;
   //define a cache, to cache media
   this.cache = new Cache(this.staticAssetsRoot);
+  //Initializing Canvas
   this.spaceSprites = Configuration.scenary.spaceSprites;
   this.spaceTimeColumn = Configuration.scenary.spaceTimeColumn;
   //build spacetime
-  const SpaceTime = new SpaceTimeContinuum()
+  this.spaceTimeContinuum = new SpaceTimeContinuum()
     .init()
     .attach();
-  this.spaceTimeContinuum = SpaceTime;
-  this.renderSpace();
+  //Render Scene
+  this.renderScene();
+  //Initialize Matter drawings
+  this.matter = new Matter()
+    .init()
+    .attach();
+  //Initializing Components
+  this.player = Engine.request('Player');
+  this.playerVehicleOptions = Configuration.player.vehicles;
+  //this.renderPlayer();
   return this;
 };
 /*
- *@generateSpace asynchronously builds and renders space
+ *@renderScene asynchronously builds and renders space
  */
-Game.prototype.renderSpace = function () {
+Game.prototype.renderScene = function () {
   this.spaceTimeContinuum.identify("space");
   this.cache.add(this.spaceSprites)
     .then(cache_keys => {
@@ -40,11 +49,10 @@ Game.prototype.renderSpace = function () {
       return this.spaceTimeContinuum.constructScene(assets);
     })
     .then(scene => {
-      const animation = this.spaceTimeContinuum.initScrollableSpace(scene);
+      const animation = this.spaceTimeContinuum.initScrollableHologram(scene);
       return this.animate(this.spaceTimeContinuum, animation);
     });
 };
-
 
 Game.prototype.animate = function (helperObject, animation) {
   //Time when animation begins

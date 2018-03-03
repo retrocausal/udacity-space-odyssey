@@ -1,0 +1,8 @@
+@media Screen and (min-width:761px) {
+  .responsive-container {
+    width: 33.33vw;
+  }
+  .responsive {
+    height: calc((9/16)*33vw);
+  }
+}
