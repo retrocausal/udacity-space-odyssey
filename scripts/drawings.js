@@ -8,37 +8,91 @@ class Drawing {
    * Initializes a new map of canvases,scroallables
    */
   constructor() {
-    this.layers = new Map();
-    this.animatables = new Map();
+    this.layers = Drawing._layers;
+  }
+  static set _layers(map) {
+    return (this.layers) ? false : (this.layers = map);
+  }
+  static get _layers() {
+    return this.layers;
+  }
+  static set _bounds(bounds) {
+    return this.bounds = bounds;
+  }
+  static get _bounds() {
+    return this.bounds;
+  }
+  static set _QEM(map) {
+    return (this.QEM) ? false : (this.QEM = map);
+  }
+  static get _QEM() {
+    return this.QEM;
   }
   /*
-   *@newLayer initializes a canvas
-   *for later retrievals
+   *@newLayer initializes a canvas to a set of dimensions,defines it
    *@return canvas element initialized
    */
-  newLayer() {
+  newLayer(width, height) {
     const canvas = document.createElement('canvas');
     const twoDimContext = canvas.getContext('2d');
+    canvas.width = width;
+    canvas.height = height;
+    const definition = this.defineCanvas(canvas);
+    this.attach(canvas);
     return {
       canvas,
-      twoDimContext
+      twoDimContext,
+      definition
     };
   }
   /*
-   * @init sets the width, and the height of a default layer and defines necessary bounds
+   *@getPrimer returns a previously set primary layer if any
+   */
+  getPrimer() {
+    return this.layers.get(document.querySelector('#primer')) || false;
+  }
+  /*
+   *@setPrimer maps a new canvas on the DOM to its definiton, and identifies it as the primary layer
+   */
+  setPrimer() {
+    const layer = this.newLayer(...this.getParentDimensions());
+    this.identify('primer', layer.canvas);
+    this.layers.set(layer.canvas, layer);
+    return layer;
+  }
+  /*
+   *@getParentDimensions returns the width and height of the containing element
+   */
+  getParentDimensions() {
+    const Width = this.parent.width();
+    const Height = this.parent.height();
+    return [Width, Height];
+  }
+
+  /*
+   *@getComposite returns a previously set composite layer if any
+   */
+  getComposite() {
+    return this.layers.get(document.querySelector('#composite')) || false;
+  }
+  /*
+   *@setComposite maps a canvas on the DOM to its definiton, and identifies it as the compositing layer
+   */
+  setComposite() {
+    const layer = this.newLayer(...this.getParentDimensions());
+    this.identify('composite', layer.canvas);
+    this.layers.set(layer.canvas, layer);
+    return layer;
+  }
+  /*
+   * @init sets a parent container, the primary layer if not defined, and some initializations
    * @[selector] Optional and is the reference target element based on
    * which, the dimensions for the default layer are determined
    */
   init(selector = 'main') {
-    const Container = $(selector);
-    const Width = Container.width();
-    const Height = Container.height();
-    this.primer = this.newLayer();
-    this.primer.canvas.width = Width;
-    this.primer.canvas.height = Height;
-    this.layers.set(this.primer, this.defineCanvas());
-    this.parent = Container;
-    this.animationOn = false;
+    this.parent = $(selector);
+    this.animatables = new Map();
+    this.primer = this.getPrimer() || this.setPrimer(this.parent);
     return this;
   }
   //DOM ops
@@ -100,10 +154,8 @@ class Drawing {
    * a sprite is constructed or, a single image which will be the sprite
    */
   constructScene(single_column) {
-    //clean slate
-    this.clear();
     return new Promise((resolve, reject) => {
-      const primer = this.layers.get(this.primer);
+      const primer = this.primer.definition;
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.height = this.primer.canvas.height;
@@ -404,4 +456,98 @@ class SpaceTimeContinuum extends Drawing {
   }
 }
 
-class Matter extends Drawing {}
+class Matter extends Drawing {
+  constructor() {
+    super();
+  }
+  init() {
+    super.init();
+    this.composite = this.getComposite() || this.setComposite();
+    this.getBounds();
+    this.initQEM();
+    return this;
+  }
+  getBounds() {
+    const setBounds = () => {
+      const definition = this.composite.definition;
+      const orientation = definition.orientation;
+      const [minX, minY] = [0, 0];
+      const maxX = (orientation == 'landscape') ? definition.vmax : definition.vmin;
+      const maxY = (orientation == 'portrait') ? definition.vmax : definition.vmin;
+      const maxEntityHeight = (orientation == 'landscape') ? Math.floor(definition.vmin * 0.1) : Math.floor(definition.vmax * 0.1);
+      const maxEntityWidth = Math.floor(maxEntityHeight * (4 / 3));
+      const esMinX = (orientation == 'landscape') ? definition.gutter : 0;
+      const esMaxX = (orientation == 'landscape') ? (definition.vmax - definition.gutter) : definition.vmin;
+      const esMinY = maxEntityHeight + 1;
+      const esMaxY = (orientation == 'portrait') ? (definition.vmax - maxEntityHeight - 1) : (definition.vmin - maxEntityHeight - 1);
+      const quadrant_0 = {
+        minX,
+        minY,
+        maxX: maxX / 2,
+        maxY: maxY / 2,
+        id: 0
+      };
+      const quadrant_1 = {
+        minX: maxX / 2,
+        minY,
+        maxX,
+        maxY: maxY / 2,
+        id: 1
+      };
+      const quadrant_2 = {
+        minX: maxX / 2,
+        minY: maxY / 2,
+        maxX,
+        maxY,
+        id: 2
+      };
+      const quadrant_3 = {
+        minX,
+        minY: maxY / 2,
+        maxX: maxX / 2,
+        maxY,
+        id: 3
+      };
+      const entityBounds = {
+        maxEntityHeight,
+        maxEntityWidth,
+        esMinX,
+        esMinY,
+        esMaxX,
+        esMaxY,
+      };
+      const bounds = {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        quadrants: [quadrant_0, quadrant_1, quadrant_2, quadrant_3],
+        entityBounds
+      };
+      Drawing._bounds = bounds;
+      return entityBounds;
+    };
+    return (Drawing._bounds) ? Drawing._bounds.entityBounds : setBounds();
+  }
+  initQEM() {
+    const setQEM = () => {
+      if (!Drawing._bounds) {
+        this.getBounds();
+      }
+      const bounds = Drawing._bounds;
+      const quadrants = bounds.quadrants;
+      Drawing._QEM = new WeakMap();
+      for (let quadrant of quadrants) {
+        Drawing._QEM.set(quadrant, new Set());
+      }
+      return Drawing._QEM;
+    };
+    return Drawing._QEM || setQEM();
+  }
+  paint(sprite, x, y, width, height) {
+    const context = this.composite.twoDimContext;
+    this.clear(this.composite.canvas);
+    context.drawImage(sprite, x, y, width, height);
+  }
+
+}

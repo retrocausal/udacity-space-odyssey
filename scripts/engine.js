@@ -1,13 +1,9 @@
-//One thing, to BIND them all
-const Configurations = new WeakMap();
-
 /*
  *@Configuration configures a playable game
  */
 class Build {
   constructor() {
     this._Game = new Game();
-    this.assemble();
   }
   set _Game(object) {
     //Images that need to be ready before render
@@ -58,11 +54,14 @@ class Build {
   run() {
     return this.Game.init();
   }
-  assemble() {
-    this.Player = new Player();
+  assemblePlayer() {
+    return new Player();
   }
   request(component) {
-    return this[component] || false;
+    const Component = this[`assemble${component}`] || false;
+    if (component) {
+      return Component();
+    }
   }
   buildResponsiveImage(asset, rasterRoot) {
     const id = asset.name;
@@ -92,8 +91,10 @@ class Build {
   }
 
 }
+//One thing, to BIND them all
+const Configurations = new WeakMap();
+//start build
 const Engine = new Build();
-
 $(() => {
   Engine.run();
 });
