@@ -1,8 +1,34 @@
 @media Screen and (min-width:761px) {
+  main {
+    min-width: 81vw;
+    width: 81vw;
+  }
   .responsive-container {
-    width: 33.33vw;
+    width: calc(81vw/3);
   }
   .responsive {
-    height: calc((9/16)*33vw);
+    height: calc((9/16)*(81vw/3));
+  }
+  .ctrl-multiple {
+    width: 32%;
+    justify-content: space-around;
+  }
+}
+
+@media Screen and (min-width:996px) {
+  main {
+    min-width: 72vw;
+    width: 72vw;
+    min-height: calc((9/16)*72vw);
+    height: calc((9/16)*72vw);
+  }
+  .responsive-container {
+    width: calc(72vw/3);
+  }
+  .responsive {
+    height: calc((9/16)*(72vw/3));
+  }
+  .ctrl-multiple {
+    width: 23%;
   }
 }

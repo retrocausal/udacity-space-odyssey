@@ -22,9 +22,10 @@ main {
   margin: auto;
   min-height: 78vh;
   height: 78vh;
+  position: relative;
 }
 
-canvas, .options {
+#primer, #composite, .options {
   position: absolute;
   top: 0;
   left: 0;
@@ -33,22 +34,27 @@ canvas, .options {
   max-width: 100%;
 }
 
+#composite {
+  z-index: 2;
+}
+
 .options {
   width: 100%;
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   align-items: center;
-  z-index: 2;
+  z-index: 3;
   position: absolute;
   top: 0;
   left: 0;
+  background: transparent;
 }
 
 .option-header {
   width: 100%;
   z-index: 2;
-  margin: 40px 0;
+  margin: 48px 0;
 }
 
 .responsive {
@@ -59,6 +65,58 @@ canvas, .options {
 
 .responsive-container {
   width: 50vw;
+}
+
+.panel {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  align-items: center;
+  margin: 1vmax 0;
+}
+
+.player-controls {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: center;
+}
+
+.panel-head {
+  width: 100%;
+  text-align: center;
+  margin: 2vmax 0;
+}
+
+.controls {
+  display: flex;
+  width: 48%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ctrl-up, .ctrl-down {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+}
+
+.ctrl-multiple {
+  width: 72%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ctrl-right, .ctrl-start, .ctrl-left {
+  width: 32%;
+}
+
+.ctrl-image {
+  min-width: 48px;
+  width: 48px;
+  max-width: 100%;
+  min-height: 48px;
+  height: 48px;
 }
 
 figure, picture {
