@@ -15,6 +15,7 @@ class Entity {
 		this.bounds = this.renderer.getBounds();
     [this.x, this.y] = this.position();
 		[this.width, this.height] = this.size();
+		this.lerpFactor = 0.25;
 		return this;
 	}
 	/*
@@ -71,10 +72,20 @@ class Entity {
 		//return a list of quadrants this entity occupies at the moment
 		return quadrants.reduce(reducer, new Set());
 	}
+	/*
+	 *@increment increments the number of an entity on the drawing
+	 */
 	increment() {
 		const name = this.constructor.name;
 		Entity[name] = Entity[name] || 0;
 		return ++Entity[name];
+	}
+	/*
+	 *@lerp linear interpolates the transition between coordinates
+	 */
+	lerp(dx, dy) {
+		this.x = this.x + (dx) * this.lerpFactor;
+		this.y = this.y + (dy) * this.lerpFactor;
 	}
 
 }
@@ -84,10 +95,9 @@ class Entity {
 class Player extends Entity {
 	constructor() {
 		super();
-		const count = this.increment();
-		const id = `player-composite-${count}`;
+		const id = `player-composite-${this.increment()}`;
 		const composite = this.renderer.setCustomComposite(id);
-		this.composite = Drawing._layers.get(document.querySelector(`#${id}`));
+		this.composite = Drawing._layers.get(composite.canvas);
 	}
 	/*
 	 *@init identifies a rendering context, overrides the pre initialized random x,y positions
@@ -100,10 +110,10 @@ class Player extends Entity {
 		//set/reset dimensions
 		this.width = this.bounds.maxEntityWidth;
 		this.height = this.bounds.maxEntityHeight;
-		//SET A SPEED TO MOVE AT
-		this.speed = {
-			x: (Drawing._bounds.maxX) / (this.width),
-			y: (Drawing._bounds.maxY) / (this.height)
+		//Set A Distance To Cover Per Trigger
+		this.distancePerTrigger = {
+			x: Math.ceil((Drawing._bounds.maxX) / (this.width)),
+			y: Math.floor((Drawing._bounds.maxY) / (this.height))
 		};
 		//override pre defined initial positions, and place this player, bang at the center of the bottom most layer
 		this.x = (Drawing._bounds.maxX) / 2;
@@ -119,23 +129,78 @@ class Player extends Entity {
 	registerInterruptHandlers(trigger = false) {
 		//define generic event handlers for each acceptable trigger
 		const arrowUpHandler = () => {
-			const y = this.y;
-			//Distance to cover along Y
-			const Y = -1 * this.speed.y;
-			let dy = Math.floor(y + Y);
-			//If the player has reached a maximum movable height along the canvas
-			if (dy < (Drawing._bounds.minY + this.height)) {
-				//the player can not loop back home, nor move out of canvas
-				dy = Drawing._bounds.minY + this.height;
-			}
-			//Move along now
-			this.y = dy;
-			//Map to a quadrant or two on the Drawing
-			this.mapToQuadrant();
+			const dx = 0;
+			const dy = this.distancePerTrigger.y * (-1);
+			const threshold = this.y + dy;
+			const animate = () => {
+				if (this.y > threshold && threshold > (Drawing._bounds.minY)) {
+					window.requestAnimationFrame(animate);
+					this.lerp(dx, dy);
+					//render this player
+					this.render(this.composite);
+					const quadrant = this.mapToQuadrant();
+					console.log(this.x, this.y, quadrant);
+				}
+			};
+			return window.requestAnimationFrame(animate);
 		};
-		const arrowDownHandler = () => {};
-		const arrowRightHandler = () => {};
-		const arrowLeftHandler = () => {};
+		const arrowDownHandler = () => {
+			const dx = 0;
+			const dy = this.distancePerTrigger.y;
+			const threshold = this.y + dy;
+			const animate = () => {
+				if (this.y < threshold && threshold < (Drawing._bounds.maxY - this.height)) {
+					window.requestAnimationFrame(animate);
+					this.lerp(dx, dy);
+					//render this player
+					this.render(this.composite);
+					const quadrant = this.mapToQuadrant();
+					console.log(this.x, this.y, quadrant);
+				}
+			};
+			return window.requestAnimationFrame(animate);
+		};
+		const arrowRightHandler = () => {
+			const dy = 0;
+			const dx = this.distancePerTrigger.x;
+			let threshold = this.x + dx;
+			const animate = () => {
+				if (this.x < threshold) {
+					if (threshold > (this.bounds.esMaxX - this.width / 2)) {
+						this.x = this.bounds.esMinX;
+						threshold = this.x;
+					}
+					window.requestAnimationFrame(animate);
+					this.lerp(dx, dy);
+					//render this player
+					this.render(this.composite);
+					const quadrant = this.mapToQuadrant();
+					console.log(this.x, this.y, quadrant);
+				}
+			};
+			return window.requestAnimationFrame(animate);
+		};
+		const arrowLeftHandler = () => {
+			const dy = 0;
+			const dx = this.distancePerTrigger.x * (-1);
+			let threshold = this.x + dx;
+			const animate = () => {
+				if (this.x > threshold) {
+					if (threshold < (this.bounds.esMinX + this.width / 2)) {
+						this.x = this.bounds.esMaxX;
+						threshold = this.x;
+					}
+					window.requestAnimationFrame(animate);
+					this.lerp(dx, dy);
+					//render this player
+					this.render(this.composite);
+					const quadrant = this.mapToQuadrant();
+					console.log(this.x, this.y, quadrant);
+				}
+			};
+			return window.requestAnimationFrame(animate);
+
+		};
 		const actionKeyHandler = () => {};
 		//define a map of acceptable keyboard triggers to action on that trigger
 		//This helps to define a particular player motion on the compositing canvas
