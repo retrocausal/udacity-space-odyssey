@@ -16,6 +16,11 @@ class Entity {
     [this.x, this.y] = this.position();
 		[this.width, this.height] = this.size();
 		this.lerpFactor = 0.25;
+		//Define an angle of rotation per frame
+		this.radians = 15 * (Math.PI / 180);
+		//initialize a current tilt angle
+		//rotation per rotation call will be the sum total of this.radians and this.currentTilt
+		this.currentTilt = 0;
 		return this;
 	}
 	/*
@@ -33,8 +38,12 @@ class Entity {
 	/*
 	 *@render renders this entity on a predefined position on the composite layer
 	 */
-	render(layer = false) {
-		return this.renderer.paint(this.avatar, this.x, this.y, this.width, this.height, layer);
+	render(...recipe) {
+		let [x = false, y = false, layer = false, skipClear = false] = recipe;
+		const X = (x !== false) ? x : this.x;
+		const Y = (y !== false) ? y : this.y;
+		const composite = layer || this.composite;
+		return this.renderer.paint(this.avatar, X, Y, this.width, this.height, composite, skipClear);
 	}
 	/*
 	 *@position randomly generates an initial position for this entity on the composite layer
@@ -87,6 +96,57 @@ class Entity {
 		this.x = this.x + (dx) * this.lerpFactor;
 		this.y = this.y + (dy) * this.lerpFactor;
 	}
+	/*
+	 *@rotate defines one rotation along the center of this entity by 15 degrees
+	 */
+	rotate(direction = 'left') {
+		let radians = 0;
+		const tilt = this.radians / 10;
+		this.currentTilt = this.currentTilt || ((direction === 'right') ? tilt : -1 * tilt);
+		const animate = () => {
+			if (radians < this.radians) {
+				window.requestAnimationFrame(animate);
+			}
+			this.tilt();
+			//increment radians by a tenth of 15 degrees
+			radians += tilt;
+			//increment current tilt on entity by the same measure too, as reference to next call to rotation,
+			//as well as next frame in this animation call
+			this.currentTilt += (direction === 'right') ? tilt : (-1) * tilt;
+		};
+		window.requestAnimationFrame(animate);
+		return this;
+	}
+	/*
+	 *@tilt tilts this entity by the current angle of tilt.
+	 *Use this to tilt this entity before linear motion
+	 */
+	tilt() {
+		//clear canvas
+		this.renderer.clear(this.composite.canvas);
+		//save context
+		this.composite.twoDimContext.save();
+		//translate to the center of this entity
+		this.composite.twoDimContext.translate((this.x + this.width / 2), (this.y + this.height / 2));
+		//rotate by currentTilt
+		this.composite.twoDimContext.rotate(this.currentTilt);
+		//draw this entity's avatar on new coordinates because of tilt
+		this.render(-this.width / 2, -this.height / 2, this.composite, true);
+		//restore context
+		this.composite.twoDimContext.restore();
+		//clear canvas
+		this.renderer.clear(this.composite.canvas);
+		//save context
+		this.composite.twoDimContext.save();
+		//translate to the center of this entity
+		this.composite.twoDimContext.translate((this.x + this.width / 2), (this.y + this.height / 2));
+		//rotate by currentTilt
+		this.composite.twoDimContext.rotate(this.currentTilt);
+		//draw this entity's avatar on new coordinates because of tilt
+		this.render(-this.width / 2, -this.height / 2, this.composite, true);
+		//restore context
+		this.composite.twoDimContext.restore();
+	}
 
 }
 /*
@@ -119,7 +179,7 @@ class Player extends Entity {
 		this.x = (Drawing._bounds.maxX) / 2;
 		this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
 		//render this player
-		this.render(this.composite);
+		this.render();
 		//register appropriate event listeners for depicting motion on the compositing canvas
 		this.registerInterruptHandlers();
 	}
@@ -137,9 +197,10 @@ class Player extends Entity {
 					window.requestAnimationFrame(animate);
 					this.lerp(dx, dy);
 					//render this player
-					this.render(this.composite);
+					this.render();
+					//tilt if there is a tilt
+					this.tilt();
 					const quadrant = this.mapToQuadrant();
-					console.log(this.x, this.y, quadrant);
 				}
 			};
 			return window.requestAnimationFrame(animate);
@@ -153,9 +214,10 @@ class Player extends Entity {
 					window.requestAnimationFrame(animate);
 					this.lerp(dx, dy);
 					//render this player
-					this.render(this.composite);
+					this.render();
+					//tilt if there is a tilt
+					this.tilt();
 					const quadrant = this.mapToQuadrant();
-					console.log(this.x, this.y, quadrant);
 				}
 			};
 			return window.requestAnimationFrame(animate);
@@ -173,9 +235,10 @@ class Player extends Entity {
 					window.requestAnimationFrame(animate);
 					this.lerp(dx, dy);
 					//render this player
-					this.render(this.composite);
+					this.render();
+					//tilt if there is a tilt
+					this.tilt();
 					const quadrant = this.mapToQuadrant();
-					console.log(this.x, this.y, quadrant);
 				}
 			};
 			return window.requestAnimationFrame(animate);
@@ -193,48 +256,96 @@ class Player extends Entity {
 					window.requestAnimationFrame(animate);
 					this.lerp(dx, dy);
 					//render this player
-					this.render(this.composite);
+					this.render();
+					//tilt if there is a tilt
+					this.tilt();
 					const quadrant = this.mapToQuadrant();
-					console.log(this.x, this.y, quadrant);
 				}
 			};
 			return window.requestAnimationFrame(animate);
 
 		};
-		const actionKeyHandler = () => {};
+		const arrowRightAltHandler = () => {
+			this.rotate('right');
+		};
+		const arrowLeftAltHandler = () => {
+			this.rotate();
+		};
 		//define a map of acceptable keyboard triggers to action on that trigger
 		//This helps to define a particular player motion on the compositing canvas
 		const actionableTriggers = new Map();
+		const unactionables = new Set(['Control', 'Tab', 'Shift', 'Alt']);
 		actionableTriggers.set('ArrowUp', arrowUpHandler);
 		actionableTriggers.set('ArrowDown', arrowDownHandler);
 		actionableTriggers.set('ArrowLeft', arrowLeftHandler);
 		actionableTriggers.set('ArrowRight', arrowRightHandler);
-		actionableTriggers.set('ActionKey', actionKeyHandler);
+		actionableTriggers.set('altArrowLeft', arrowLeftAltHandler);
+		actionableTriggers.set('altArrowRight', arrowRightAltHandler);
 		//A trigger, has two states. On, or Off. initialize it to off.
 		//On is when, an acceptable key is pressed
 		//Off is when, the  previously pressed key is released
 		let kbdTrigger = false;
+		let MatchableAlternateTrigger = false;
 		//define an event chain to handle
 		document.addEventListener('keydown', (keyDownEvent) => {
+			//which key?
 			const key = keyDownEvent.key;
+			//was alt pressed too?
+			const alt = keyDownEvent.altKey;
+			//if yes, prevent default action for alt key
+			if (alt) {
+				keyDownEvent.preventDefault();
+				MatchableAlternateTrigger = `alt${key}`;
+			}
 			//Only When a new key is pressed, record events
 			//If the user holds down a particular key, for example, do not
 			//record that event
-			if (actionableTriggers.has(key) && (key !== kbdTrigger)) {
+			//Also, do not process unactionables alone, unless they are pressed with an option
+			if (actionableTriggers.has(key) && (key !== kbdTrigger) && !unactionables.has(key)) {
 				//record action on keyboard, identify task
 				kbdTrigger = key;
 				document.addEventListener('keyup', (keyUpEvent) => {
+					let AlternateTrigger = false;
 					const key = keyUpEvent.key;
-					if (key === kbdTrigger) {
-						const triggerableAction = actionableTriggers.get(kbdTrigger);
-						//act on trigger
-						triggerableAction();
+					//rerecord alt
+					const alt = keyUpEvent.altKey;
+					if (alt) {
+						keyUpEvent.preventDefault();
+						AlternateTrigger = `alt${key}`;
+					}
+					//If the user used a plain keyboard action (one of the arrow keys)
+					//Recognize the trigger, and set it off
+					if (!unactionables.has(key) && key === kbdTrigger && !AlternateTrigger) {
+						const triggerAction = actionableTriggers.get(kbdTrigger) || false;
+						if (triggerAction) {
+							triggerAction();
+						}
 						//release pressed trigger
 						kbdTrigger = false;
+					}
+					//If the user pressed 'ALT' + 'KBD ARROW KEY'
+					//recognize the alternate trigger and set it off
+					if (AlternateTrigger && MatchableAlternateTrigger && AlternateTrigger === MatchableAlternateTrigger) {
+						const triggerAltAction = actionableTriggers.get(AlternateTrigger) || false;
+						if (triggerAltAction) {
+							triggerAltAction();
+						}
+						//release AlternateTrigger
+						MatchableAlternateTrigger = false;
+						AlternateTrigger = false;
 					}
 				});
 			}
 			return false;
 		});
+		//Activate Panel
+		const cpanelUp = document.querySelector('#ctrl-up');
+		const cpanelDown = document.querySelector('#ctrl-down');
+		const cpanelRight = document.querySelector('#ctrl-right');
+		const cpanelLeft = document.querySelector('#ctrl-left');
+		cpanelUp.addEventListener('click', arrowUpHandler);
+		cpanelDown.addEventListener('click', arrowDownHandler);
+		cpanelLeft.addEventListener('click', arrowLeftHandler);
+		cpanelRight.addEventListener('click', arrowRightHandler);
 	}
 }

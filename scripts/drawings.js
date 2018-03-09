@@ -587,9 +587,9 @@ class Matter extends Drawing {
 	 *@paint simply renders an entity on the compositing layer
 	 *using a passed position and transform if any
 	 */
-	paint(sprite, x, y, width, height, layer) {
+	paint(sprite, x, y, width, height, layer, skipClear) {
 		const composite = layer || this.composite;
-		this.clear(composite.canvas);
+		const clearCanvas = skipClear || this.clear(composite.canvas);
 		composite.twoDimContext.drawImage(sprite, x, y, width, height);
 	}
 
