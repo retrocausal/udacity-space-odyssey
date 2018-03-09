@@ -209,9 +209,12 @@ class Player extends Entity {
 		this.render();
 		//register appropriate event listeners for depicting motion on the compositing canvas
 		this.registerInterruptHandlers();
+		this.moves = 0;
+		return this;
 	}
 	/*
 	 *@registerInterruptHandlers registers a set of acceptable motion triggers
+	 *And Also, activates them.
 	 */
 	registerInterruptHandlers(trigger = false) {
 		//define generic event handlers for each acceptable trigger
@@ -356,7 +359,8 @@ class Player extends Entity {
 					}
 					//If the user used a plain keyboard action (one of the arrow keys)
 					//Recognize the trigger, and set it off
-					if (!unactionables.has(key) && key === kbdTrigger && !AlternateTrigger) {
+					const normalTrigger = !unactionables.has(key) && key === kbdTrigger && !AlternateTrigger;
+					if (normalTrigger) {
 						const triggerAction = actionableTriggers.get(kbdTrigger) || false;
 						if (triggerAction) {
 							triggerAction();
@@ -366,7 +370,8 @@ class Player extends Entity {
 					}
 					//If the user pressed 'ALT' + 'KBD ARROW KEY'
 					//recognize the alternate trigger and set it off
-					if (AlternateTrigger && MatchableAlternateTrigger && AlternateTrigger === MatchableAlternateTrigger) {
+					const altTrigger = AlternateTrigger && MatchableAlternateTrigger && (AlternateTrigger === MatchableAlternateTrigger);
+					if (altTrigger) {
 						const triggerAltAction = actionableTriggers.get(AlternateTrigger) || false;
 						if (triggerAltAction) {
 							triggerAltAction();
@@ -375,6 +380,8 @@ class Player extends Entity {
 						MatchableAlternateTrigger = false;
 						AlternateTrigger = false;
 					}
+					if (normalTrigger || altTrigger)
+						this.moves++;
 				});
 			}
 			return false;
