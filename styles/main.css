@@ -20,11 +20,12 @@ header, footer {
 	flex-direction: column;
 	justify-content: space-around;
 	width: 100%;
+	min-height: 1vmin;
 }
 
 .banner {
 	width: 100%;
-	margin: 2vmax 0;
+	margin: 0.51vmax 0;
 }
 
 main {
@@ -88,7 +89,7 @@ main {
 	justify-content: center;
 	width: 100%;
 	align-items: center;
-	margin: 1vmax 0;
+	margin: 1vmax auto;
 }
 
 .player-controls {
