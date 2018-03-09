@@ -99,12 +99,13 @@ class Entity {
 	/*
 	 *@rotate defines one rotation along the center of this entity by 15 degrees
 	 */
-	rotate(direction = 'left') {
+	rotate(direction = 'left', angle) {
 		let radians = 0;
+		const Angle = angle || this.radians;
 		const tilt = this.radians / 10;
 		this.currentTilt = this.currentTilt || ((direction === 'right') ? tilt : -1 * tilt);
 		const animate = () => {
-			if (radians < this.radians) {
+			if (radians < Angle) {
 				window.requestAnimationFrame(animate);
 			}
 			this.tilt();
@@ -146,6 +147,32 @@ class Entity {
 		this.render(-this.width / 2, -this.height / 2, this.composite, true);
 		//restore context
 		this.composite.twoDimContext.restore();
+	}
+	/*
+	 *@spin animates rotation on this entity
+	 */
+	spin() {
+		const then = 0;
+		const spin = (now) => {
+			then = then || now;
+			window.requestAnimationFrame(spin);
+			const time = (now - then) / 1000;
+			this.rotate('right', 1 * (Math.PI / 180));
+		};
+		return window.requestAnimationFrame(spin);
+	}
+	/*
+	 *@move moves this entity via LERP
+	 *@params dx,dy are Mandatory, and specify the distances to cover per axis
+	 */
+	move(dx, dy) {
+		this.lerp(dx, dy);
+		//render this player
+		this.render();
+		//tilt if there is a tilt
+		this.tilt();
+		//Map to a quadrant on the Drawing, after each move
+		const quadrant = this.mapToQuadrant();
 	}
 
 }
@@ -189,77 +216,91 @@ class Player extends Entity {
 	registerInterruptHandlers(trigger = false) {
 		//define generic event handlers for each acceptable trigger
 		const arrowUpHandler = () => {
+			//the player will not move horizontally
 			const dx = 0;
-			const dy = this.distancePerTrigger.y * (-1);
+			//player has to move a certain predefined distance per trigger
+			const dy = this.distancePerTrigger.y * -1;
+			//threshold is, the current vertical postion of the player, minus the distance per trigger to cover
 			const threshold = this.y + dy;
 			const animate = () => {
-				if (this.y > threshold && threshold > (Drawing._bounds.minY)) {
+				//Only move down, if the player's current vertical position is yet to cross the threshold
+				//And, if the threshold itself, is not beyond the canvas
+				if (this.y > threshold && threshold >= (Drawing._bounds.minY)) {
 					window.requestAnimationFrame(animate);
-					this.lerp(dx, dy);
-					//render this player
-					this.render();
-					//tilt if there is a tilt
-					this.tilt();
-					const quadrant = this.mapToQuadrant();
+					this.move(dx, dy);
 				}
 			};
 			return window.requestAnimationFrame(animate);
 		};
 		const arrowDownHandler = () => {
+			//the player will not move horizontally
 			const dx = 0;
+			//player has to move a certain predefined distance per trigger
 			const dy = this.distancePerTrigger.y;
+			//threshold is, the current vertical postion of the player, plus the distance per trigger to cover
 			const threshold = this.y + dy;
 			const animate = () => {
-				if (this.y < threshold && threshold < (Drawing._bounds.maxY - this.height)) {
+				//Only move down, if the player's current vertical position is yet to cross the threshold
+				//And, if the threshold itself, is not beyond the canvas
+				if (this.y < threshold && threshold <= (Drawing._bounds.maxY - this.height)) {
 					window.requestAnimationFrame(animate);
-					this.lerp(dx, dy);
-					//render this player
-					this.render();
-					//tilt if there is a tilt
-					this.tilt();
-					const quadrant = this.mapToQuadrant();
+					this.move(dx, dy);
 				}
 			};
 			return window.requestAnimationFrame(animate);
 		};
 		const arrowRightHandler = () => {
+			//player will not move vertically
 			const dy = 0;
-			const dx = this.distancePerTrigger.x;
+			//player has to move a certain predefined distance per trigger
+			let dx = this.distancePerTrigger.x;
+			//threshold is, the current horizontal postion of the player, plus the distance per trigger to cover
 			let threshold = this.x + dx;
+			let animation;
 			const animate = () => {
+				//Only move, if the threshold, is greater than the current horizontal position of the plaayer
 				if (this.x < threshold) {
-					if (threshold > (this.bounds.esMaxX - this.width / 2)) {
-						this.x = this.bounds.esMinX;
+					animation = window.requestAnimationFrame(animate);
+					//if the threshold to move to, is beyond the canvas, reset the player's horizontal position to a minimum
+					if (threshold > (Drawing._bounds.maxX - this.width)) {
+						this.x = Drawing._bounds.minX;
+						//reset threshold
+						//If not done, the player's current position will remain lesser than the previous threshold
+						//causing untriggered movement
 						threshold = this.x;
+						dx = 0;
 					}
-					window.requestAnimationFrame(animate);
-					this.lerp(dx, dy);
-					//render this player
-					this.render();
-					//tilt if there is a tilt
-					this.tilt();
-					const quadrant = this.mapToQuadrant();
+					this.move(dx, dy);
+				} else {
+					window.cancelAnimationFrame(animation);
 				}
 			};
 			return window.requestAnimationFrame(animate);
 		};
 		const arrowLeftHandler = () => {
+			//player will not move vertically
 			const dy = 0;
-			const dx = this.distancePerTrigger.x * (-1);
+			//player has to move a certain predefined distance per trigger
+			let dx = this.distancePerTrigger.x * -1;
+			//threshold is, the current horizontal postion of the player, minus the distance per trigger to cover
 			let threshold = this.x + dx;
+			let animation;
 			const animate = () => {
+				//Only move, if the threshold, is lesser than the current horizontal position of the plaayer
 				if (this.x > threshold) {
-					if (threshold < (this.bounds.esMinX + this.width / 2)) {
-						this.x = this.bounds.esMaxX;
+					animation = window.requestAnimationFrame(animate);
+					//if the threshold to move to, is beyond the canvas, reset the player's horizontal position to a maximum
+					if (threshold < (Drawing._bounds.minX + this.width)) {
+						this.x = Drawing._bounds.maxX - this.width;
+						//reset threshold
+						//If not done, the player's current position will remain greater than the previous threshold
+						//causing untriggered movement
 						threshold = this.x;
+						dx = 0;
 					}
-					window.requestAnimationFrame(animate);
-					this.lerp(dx, dy);
-					//render this player
-					this.render();
-					//tilt if there is a tilt
-					this.tilt();
-					const quadrant = this.mapToQuadrant();
+					this.move(dx, dy);
+				} else {
+					window.cancelAnimationFrame(animation);
 				}
 			};
 			return window.requestAnimationFrame(animate);
