@@ -15,6 +15,18 @@ BODY {
 	justify-content: space-around;
 }
 
+header, footer {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-around;
+	width: 100%;
+}
+
+.banner {
+	width: 100%;
+	margin: 2vmax 0;
+}
+
 main {
 	padding: 0;
 	min-width: 100%;
