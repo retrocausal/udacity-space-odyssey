@@ -10,6 +10,9 @@ const Game = function () {
 	this.staticAssetsRoot = "./assets/rasters/";
 	Drawing._layers = new WeakMap();
 };
+/*
+ *@init initializes the game, initializes individual components
+ */
 Game.prototype.init = function () {
 	//gather configurables
 	const Configuration = Configurations.get(this)
@@ -17,17 +20,26 @@ Game.prototype.init = function () {
 	//define a cache, to cache media
 	this.cache = new Cache(this.staticAssetsRoot);
 	//Initializing Canvas
-	this.spaceSprites = Configuration.scenary.spaceSprites;
-	this.spaceTimeColumn = Configuration.scenary.spaceTimeColumn;
+	this.spaceSprites = Configuration.Scenary.spaceSprites;
+	this.spaceTimeColumn = Configuration.Scenary.spaceTimeColumn;
 	//build spacetime
 	this.spaceTimeContinuum = new SpaceTimeContinuum()
 		.init();
 	//Initializing Components
+	//Player stuff
 	this.player = Engine.request('Player');
-	this.playerVehicleOptions = Configuration.player.vehicles;
+	this.playerVehicleOptions = Configuration.Player.Vehicles;
+	//Entities
+	this.matter = Configuration.Matter;
+	this.entities = this.requestEntities();
+	//Build complete, render and play
 	this.play();
 	return this;
 };
+/*
+ *@play renders the scene,presents player options, and waits for a player to move
+ *before activating timed behavious
+ */
 Game.prototype.play = function () {
 	//Render Scene
 	this.renderScene();
@@ -37,26 +49,106 @@ Game.prototype.play = function () {
 			//If the game has begun,
 			//set an epoch for timed behaviours
 			this.epoch = Date.now();
+			let requestNewEntities;
+			let lastRequested;
+			//define a throttle to throttle number of entities created post epoch
+			const throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
+			const timedRequest = (now) => {
+				requestNewEntities = window.requestAnimationFrame(timedRequest);
+				//time keeping stuff. If this is the first time post epoch new entities are requested,
+				//time lag is the difference between game epoch, and now
+				//else, time lag is the difference between now and the last time new entities were requested
+				const time = (!lastRequested) ? (Date.now() - this.epoch) : (now - lastRequested);
+				//fourteen seconds post game epoch, create new throttled number of entites
+				if (!lastRequested && time >= 14000) {
+					this.requestEntities(throttle);
+					lastRequested = now;
+				}
+				//eight three seconds into the game, create the last batch of new entities
+				if (lastRequested && time > 69000) {
+					this.requestEntities(throttle);
+					this.requestEntities(throttle + 1);
+					window.cancelAnimationFrame(requestNewEntities);
+				}
+			};
+			window.requestAnimationFrame(timedRequest);
 		}, reload => {
 			//If the game hasn't begun, reload
 			window.location.reload(true);
 		});
 }
 /*
+ *@requestEntities requests the game engine, to build, assemble individual non player
+ *Entities
+ */
+Game.prototype.requestEntities = function (throttle = 0) {
+	const epoch = this.epoch || false;
+	//Entity requests procedure if the call to requestEntities is made after play began
+	const addPostEpochEntities = () => {
+		//create entities
+		const entities = Engine.request('Entities', [this.matter, throttle]);
+		//add them to the game tracking meta
+		for (const entity of entities) {
+			Configurations.get(this)
+				.meta.entities.add(entity);
+		}
+		//copy them over locally for rendering later
+		return this.entities = Configurations.get(this)
+			.meta.entities;
+	};
+	//Entity requests procedure if the call to requestEntities is made prior to play - usually at game init
+	const addPreEpochEntities = () => {
+		//create new entities
+		const entities = Engine.request('Entities', [this.matter, throttle]);
+		//dump them into the game tracking meta for renders later
+		Configurations.get(this)
+			.meta.entities = entities;
+		this.initEntities();
+		return entities;
+	};
+	return (epoch) ? addPostEpochEntities() : addPreEpochEntities();
+};
+/*
+ *@initEntities caches avatars of each entity in this.entites
+ *then initializes them
+ */
+Game.prototype.initEntities = function () {
+	//collect avatars of individual matter types, to cache before render
+	const collectCacheables = () => {
+		const matter = [...this.matter];
+		const reducer = (accumalate, matter) => {
+			accumalate.unshift(matter.avatar);
+			return accumalate;
+		};
+		return matter.reduce(reducer, []);
+	};
+	//If avatars have been collected before, use the collection, and do not go collecting
+	this.entityAvatars = this.entityAvatars || collectCacheables();
+	return this.cache.add(this.entityAvatars)
+		.then(cache_keys => {
+			//Initialize Entities
+		});
+};
+/*
  *@renderScene asynchronously builds and renders space
  */
 Game.prototype.renderScene = function () {
-	this.cache.add(this.spaceSprites)
+	//add sprite building images to cache
+	return this.cache.add(this.spaceSprites)
 		.then(cache_keys => {
+			//retrieve required column forming images from cache
 			const assets = this.spaceTimeColumn.map(rowOfColumn => {
 				const key = this.staticAssetsRoot + rowOfColumn;
 				return this.cache.retrieve(key)
 					.value;
 			});
+			//construct a sprite from retrieved images
 			return this.spaceTimeContinuum.constructScene(assets);
 		})
 		.then(scene => {
+			//build a hologram of the constructed sprite
 			const animation = this.spaceTimeContinuum.initScrollableHologram(scene);
+			//scroll the hologram
 			return this.animate(this.spaceTimeContinuum, animation);
 		});
 };

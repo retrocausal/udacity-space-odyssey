@@ -107,7 +107,7 @@ main {
 
 .controls {
 	display: flex;
-	width: 48%;
+	width: 50%;
 	flex-wrap: wrap;
 	justify-content: center;
 }

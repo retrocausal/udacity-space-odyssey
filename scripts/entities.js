@@ -10,11 +10,11 @@ class Entity {
 	constructor() {
 		this.renderer = new Matter()
 			.init();
-	}
-	init() {
 		this.bounds = this.renderer.getBounds();
+	}
+	init(maxW, maxH) {
     [this.x, this.y] = this.position();
-		[this.width, this.height] = this.size();
+		[this.width, this.height] = this.size(maxW, maxH);
 		this.lerpFactor = 0.25;
 		//Define an angle of rotation per frame
 		this.radians = 15 * (Math.PI / 180);
@@ -26,9 +26,9 @@ class Entity {
 	/*
 	 *@size defines a random dimension for this entity
 	 */
-	size() {
-		const ceilW = this.bounds.maxEntityWidth;
-		const ceilH = this.bounds.maxEntityHeight;
+	size(ceilWidth, ceilHeight) {
+		const ceilW = ceilWidth || this.bounds.maxEntityWidth;
+		const ceilH = ceilHeight || this.bounds.maxEntityHeight;
 		const floorW = this.bounds.minEntityWidth;
 		const floorH = this.bounds.minEntityHeight;
 		const randomW = Math.floor(Math.random() * (ceilW - floorW + 1)) + floorW;
@@ -395,5 +395,68 @@ class Player extends Entity {
 		cpanelDown.addEventListener('click', arrowDownHandler);
 		cpanelLeft.addEventListener('click', arrowLeftHandler);
 		cpanelRight.addEventListener('click', arrowRightHandler);
+	}
+}
+/*
+ *Blackhole is an Entity. It has a generic entity behaviour, and some of its own
+ */
+class Blackhole extends Entity {
+	constructor() {
+		super();
+	}
+	init(avatar) {
+		super.init();
+		//set an avatar
+		this.avatar = avatar;
+		return this;
+	}
+}
+
+/*
+ *Star is an Entity. It has a generic entity behaviour, and some of its own
+ */
+class Star extends Entity {
+	constructor() {
+		super();
+	}
+	init(avatar) {
+		super.init();
+		//set an avatar
+		this.avatar = avatar;
+		this.width = this.bounds.maxEntityWidth * 1.5;
+		this.height = this.bounds.maxEntityHeight * 1.5;
+		return this;
+	}
+}
+/*
+ *Planet is an Entity. It has a generic entity behaviour, and some of its own
+ */
+class Planet extends Entity {
+	constructor() {
+		super();
+		this.maxHeight = this.bounds.maxEntityHeight * 0.75;
+		this.maxWidth = (4 / 3) * this.maxHeight;
+	}
+	init(avatar) {
+		super.init(this.maxWidth, this.maxHeight);
+		//set an avatar
+		this.avatar = avatar;
+		return this;
+	}
+}
+/*
+ *Asteroid is an Entity. It has a generic entity behaviour, and some of its own
+ */
+class Asteroid extends Entity {
+	constructor() {
+		super();
+		this.maxHeight = this.bounds.maxEntityHeight * 0.6;
+		this.maxWidth = (4 / 3) * this.maxHeight;
+	}
+	init(avatar) {
+		super.init(this.maxWidth, this.maxHeight);
+		//set an avatar
+		this.avatar = avatar;
+		return this;
 	}
 }

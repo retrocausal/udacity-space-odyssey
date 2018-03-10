@@ -19,32 +19,51 @@ class Build {
         'space.jpg', // Top row is space illustration
         'space.jpg'
     ];
-		//initiate an empty object for state maintanence
-		const meta = {
-
+		const Scenary = {
+			spaceSprites,
+			spaceTimeColumn
 		};
 		//configure a Player in the Game
-		const vehicles = [
+		const Vehicles = [
       'spacecraft1.png', 'spacecraft2.png', 'spacecraft3.png'
     ];
-		const playerConfiguration = {
-			vehicles,
-			meta
+		const Player = {
+			Vehicles
 		};
+		const Matter = new Set([
+			{
+				count: 3,
+				avatar: 'rock.png',
+				build: Asteroid
+			},
+			{
+				count: 2,
+				avatar: 'planet.png',
+				build: Planet
+			},
+			{
+				count: 1,
+				avatar: 'blackhole.png',
+				build: Blackhole
+			},
+			{
+				count: 1,
+				avatar: 'star.png',
+				build: Star
+			}
+		]);
 		//accumalate / consolidate all the above, into one configurable
 		const configuration = {
-			scenary: {
-				spaceSprites,
-				spaceTimeColumn
-			},
-			player: playerConfiguration
+			Scenary,
+			Player,
+			Matter
 		};
 		//retain a reference for retrieving configurations
 		this.Game = object;
 		//set game configurations,skeletal meta
 		Configurations.set(this.Game, {
 			configuration,
-			meta
+			meta: {}
 		});
 		return object;
 	}
@@ -57,11 +76,23 @@ class Build {
 	assemblePlayer() {
 		return new Player();
 	}
-	request(component) {
-		const Component = this[`assemble${component}`] || false;
-		if (component) {
-			return Component();
+	assembleEntities(Options) {
+		const [Matter, throttle] = Options;
+		const entities = new Set();
+		for (const matter of Matter) {
+			let count = matter.count;
+			count = count - throttle;
+			while (count > 0) {
+				const entity = new matter.build();
+				entities.add(entity);
+				count--;
+			}
 		}
+		return entities;
+	}
+	request(component, options = false) {
+		const Component = this[`assemble${component}`] || false;
+		return (component && Component) ? Component(options) : false;
 	}
 	buildResponsiveImage(asset, rasterRoot) {
 		const id = asset.name;
