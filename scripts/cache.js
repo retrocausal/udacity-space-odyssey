@@ -95,23 +95,33 @@ class Cache {
 	 * and determines if all are loaded and ready
 	 */
 	isReady(asset_identifiers) {
-		//initialize parameter that identifies readiness
-		//If the count of assets in queue of asset ids passed
-		//Equals readiness, assets have been cached
-		let readiness = 0;
-		for (let id of asset_identifiers) {
-			//gather the asset being investigated
-			const asset = this.staticAssets.get(id);
-			//If ready, mark ready
-			if (asset.ready === true) {
-				readiness++;
+		const readynessOnSetOfIDs = () => {
+			//initialize parameter that identifies readiness
+			//If the count of assets in queue of asset ids passed
+			//Equals readiness, assets have been cached
+			let readiness = 0;
+			for (let id of asset_identifiers) {
+				//gather the asset being investigated
+				const asset = this.staticAssets.get(id);
+				//If ready, mark ready
+				if (asset.ready === true) {
+					readiness++;
+				}
 			}
-		}
-		//If all assets in the current queue have been cached and loaded,
-		//return true else return false
-		return (readiness == asset_identifiers.size);
+			//If all assets in the current queue have been cached and loaded,
+			//return true else return false
+			return (readiness == asset_identifiers.size);
+		};
+		const readinessOnSingleID = () => {
+			//gather the asset being investigated
+			const asset = this.staticAssets.get(asset_identifiers);
+			//If ready, mark ready
+			return (asset.ready === true);
+		};
+		return (asset_identifiers instanceof Set) ? readynessOnSetOfIDs() : readinessOnSingleID();
 	}
-	retrieve(key) {
-		return (key && this.staticAssets.has(key)) ? this.staticAssets.get(key) : false
+	retrieve(Key) {
+		const key = String(Key);
+		return (key && this.staticAssets.has(key) && this.isReady(key)) ? this.staticAssets.get(key) : false
 	}
 }

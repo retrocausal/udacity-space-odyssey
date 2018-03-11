@@ -83,7 +83,7 @@ class Build {
 			let count = matter.count;
 			count = count - throttle;
 			while (count > 0) {
-				const entity = new matter.build();
+				const entity = new matter.build(matter.avatar);
 				entities.add(entity);
 				count--;
 			}

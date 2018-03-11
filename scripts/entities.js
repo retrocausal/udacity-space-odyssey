@@ -202,15 +202,23 @@ class Player extends Entity {
 			x: Math.ceil((Drawing._bounds.maxX) / (this.width)),
 			y: Math.floor((Drawing._bounds.maxY) / (this.height))
 		};
+		this.reset();
+		return this;
+	}
+	reset() {
 		//override pre defined initial positions, and place this player, bang at the center of the bottom most layer
 		this.x = (Drawing._bounds.maxX) / 2;
 		this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
+		this.moves = 0;
+	}
+	/*
+	 *@manifest renders and activates the player
+	 */
+	manifest() {
 		//render this player
 		this.render();
 		//register appropriate event listeners for depicting motion on the compositing canvas
 		this.registerInterruptHandlers();
-		this.moves = 0;
-		return this;
 	}
 	/*
 	 *@registerInterruptHandlers registers a set of acceptable motion triggers
@@ -401,12 +409,12 @@ class Player extends Entity {
  *Blackhole is an Entity. It has a generic entity behaviour, and some of its own
  */
 class Blackhole extends Entity {
-	constructor() {
+	constructor(avatar_id) {
 		super();
+		this.avatar_id = avatar_id;
 	}
 	init(avatar) {
 		super.init();
-		//set an avatar
 		this.avatar = avatar;
 		return this;
 	}
@@ -416,12 +424,12 @@ class Blackhole extends Entity {
  *Star is an Entity. It has a generic entity behaviour, and some of its own
  */
 class Star extends Entity {
-	constructor() {
+	constructor(avatar_id) {
 		super();
+		this.avatar_id = avatar_id;
 	}
 	init(avatar) {
 		super.init();
-		//set an avatar
 		this.avatar = avatar;
 		this.width = this.bounds.maxEntityWidth * 1.5;
 		this.height = this.bounds.maxEntityHeight * 1.5;
@@ -432,14 +440,14 @@ class Star extends Entity {
  *Planet is an Entity. It has a generic entity behaviour, and some of its own
  */
 class Planet extends Entity {
-	constructor() {
+	constructor(avatar_id) {
 		super();
+		this.avatar_id = avatar_id;
 		this.maxHeight = this.bounds.maxEntityHeight * 0.75;
 		this.maxWidth = (4 / 3) * this.maxHeight;
 	}
 	init(avatar) {
 		super.init(this.maxWidth, this.maxHeight);
-		//set an avatar
 		this.avatar = avatar;
 		return this;
 	}
@@ -448,14 +456,14 @@ class Planet extends Entity {
  *Asteroid is an Entity. It has a generic entity behaviour, and some of its own
  */
 class Asteroid extends Entity {
-	constructor() {
+	constructor(avatar_id) {
 		super();
+		this.avatar_id = avatar_id;
 		this.maxHeight = this.bounds.maxEntityHeight * 0.6;
 		this.maxWidth = (4 / 3) * this.maxHeight;
 	}
 	init(avatar) {
 		super.init(this.maxWidth, this.maxHeight);
-		//set an avatar
 		this.avatar = avatar;
 		return this;
 	}

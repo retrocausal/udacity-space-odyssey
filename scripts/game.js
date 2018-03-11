@@ -26,57 +26,94 @@ Game.prototype.init = function () {
 	this.spaceTimeContinuum = new SpaceTimeContinuum()
 		.init();
 	//Initializing Components
-	//Player stuff
+	//Player
 	this.player = Engine.request('Player');
 	this.playerVehicleOptions = Configuration.Player.Vehicles;
 	//Entities
 	this.matter = Configuration.Matter;
 	this.entities = this.requestEntities();
 	//Build complete, render and play
+	//Render Scene
+	this.renderScene();
 	this.play();
 	return this;
 };
 /*
- *@play renders the scene,presents player options, and waits for a player to move
- *before activating timed behavious
+ *@restart restarts the game
  */
-Game.prototype.play = function () {
-	//Render Scene
-	this.renderScene();
-	//ask feedback
-	this.presentPlayerOptions()
-		.then(hasBegun => {
-			//If the game has begun,
-			//set an epoch for timed behaviours
-			this.epoch = Date.now();
-			let requestNewEntities;
-			let lastRequested;
-			//define a throttle to throttle number of entities created post epoch
-			const throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
-			const timedRequest = (now) => {
-				requestNewEntities = window.requestAnimationFrame(timedRequest);
-				//time keeping stuff. If this is the first time post epoch new entities are requested,
-				//time lag is the difference between game epoch, and now
-				//else, time lag is the difference between now and the last time new entities were requested
-				const time = (!lastRequested) ? (Date.now() - this.epoch) : (now - lastRequested);
-				//fourteen seconds post game epoch, create new throttled number of entites
-				if (!lastRequested && time >= 14000) {
-					this.requestEntities(throttle);
-					lastRequested = now;
-				}
-				//eight three seconds into the game, create the last batch of new entities
-				if (lastRequested && time > 69000) {
-					this.requestEntities(throttle);
-					this.requestEntities(throttle + 1);
-					window.cancelAnimationFrame(requestNewEntities);
-				}
-			};
-			window.requestAnimationFrame(timedRequest);
-		}, reload => {
-			//If the game hasn't begun, reload
-			window.location.reload(true);
-		});
+Game.prototype.restart = function () {
+	//reset player
+	this.player.reset();
+	//reset entities
+	this.epoch = false;
+	this.entities = this.requestEntities();
+	this.play(true);
+	return this;
+
+};
+/*
+ *@play initiates the fist ever game on reload, or, a replay initiated by happenings and / or user feedback
+ */
+Game.prototype.play = function (restart = false) {
+	const firstGame = () => {
+		//ask feedback if this is the first game
+		this.presentPlayerOptions()
+			.then(hasBegun => {
+				this.initLevel(1);
+			}, reload => {
+				//If the game hasn't begun, reload
+				window.location.reload(true);
+			})
+			.catch(exception => {
+				console.warn(exception);
+			});
+	};
+	const Restart = () => {
+		this.awaitMove()
+			.then(hasBegun => {
+				this.initLevel(1);
+			}, reload => {
+				//If the game hasn't begun after three minutes, reload
+				//Since this is a restart, the game essentially resets hard
+				//And the user will need to begin all over again
+				window.location.reload(true);
+			})
+			.catch(exception => {
+				console.warn(exception);
+			});
+	};
+	return (restart) ? Restart() : firstGame();
 }
+/*
+ *
+ */
+Game.prototype.initLevel = function (level = 1) {
+	//set an epoch for timed behaviours
+	this.epoch = Date.now();
+	let requestNewEntities;
+	let lastRequested;
+	//define a throttle to throttle number of entities created post epoch
+	const throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
+	const timedRequest = (now) => {
+		requestNewEntities = window.requestAnimationFrame(timedRequest);
+		//time keeping stuff. If this is the first time post epoch new entities are requested,
+		//time lag is the difference between game epoch, and now
+		//else, time lag is the difference between now and the last time new entities were requested
+		const time = (!lastRequested) ? (Date.now() - this.epoch) : (now - lastRequested);
+		//fourteen seconds post game epoch, create new throttled number of entites
+		if (!lastRequested && time >= 14000) {
+			this.requestEntities(throttle);
+			lastRequested = now;
+		}
+		//eighty three seconds into the game, create the last batch of new entities
+		if (lastRequested && time > 69000) {
+			this.requestEntities(throttle);
+			this.requestEntities(throttle + 1);
+			window.cancelAnimationFrame(requestNewEntities);
+		}
+	};
+	window.requestAnimationFrame(timedRequest);
+};
 /*
  *@requestEntities requests the game engine, to build, assemble individual non player
  *Entities
@@ -92,6 +129,7 @@ Game.prototype.requestEntities = function (throttle = 0) {
 			Configurations.get(this)
 				.meta.entities.add(entity);
 		}
+		this.initEntities(entities);
 		//copy them over locally for rendering later
 		return this.entities = Configurations.get(this)
 			.meta.entities;
@@ -103,16 +141,16 @@ Game.prototype.requestEntities = function (throttle = 0) {
 		//dump them into the game tracking meta for renders later
 		Configurations.get(this)
 			.meta.entities = entities;
-		this.initEntities();
+		this.initEntities(entities);
 		return entities;
 	};
 	return (epoch) ? addPostEpochEntities() : addPreEpochEntities();
 };
 /*
- *@initEntities caches avatars of each entity in this.entites
- *then initializes them
+ *@initEntities caches avatars of each entity in this.entites, if not already cached earlier
+ *then initializes each entity, making them render ready
  */
-Game.prototype.initEntities = function () {
+Game.prototype.initEntities = function (entities) {
 	//collect avatars of individual matter types, to cache before render
 	const collectCacheables = () => {
 		const matter = [...this.matter];
@@ -127,6 +165,16 @@ Game.prototype.initEntities = function () {
 	return this.cache.add(this.entityAvatars)
 		.then(cache_keys => {
 			//Initialize Entities
+			for (const entity of entities) {
+				const id = entity.avatar_id;
+				const cache_key = `${this.staticAssetsRoot}${id}`;
+				const avatar = this.cache.retrieve(cache_key);
+				if (!avatar) throw (`The avatar for ${entity.constructor.name} is not cached`);
+				entity.init(avatar.value);
+			}
+		})
+		.catch(exception => {
+			console.warn(exception);
 		});
 };
 /*
@@ -139,17 +187,30 @@ Game.prototype.renderScene = function () {
 			//retrieve required column forming images from cache
 			const assets = this.spaceTimeColumn.map(rowOfColumn => {
 				const key = this.staticAssetsRoot + rowOfColumn;
+				if (!this.cache.retrieve(key)) {
+					throw (`No asset found at ${key}`);
+				}
 				return this.cache.retrieve(key)
 					.value;
 			});
 			//construct a sprite from retrieved images
 			return this.spaceTimeContinuum.constructScene(assets);
+		}, error => {
+			throw (error);
 		})
 		.then(scene => {
 			//build a hologram of the constructed sprite
+			if (!scene.tagName || scene.tagName.toLowerCase() !== 'canvas') {
+				throw ('Scenary has to be a canvas element');
+			}
 			const animation = this.spaceTimeContinuum.initScrollableHologram(scene);
 			//scroll the hologram
 			return this.animate(this.spaceTimeContinuum, animation);
+		}, error => {
+			throw (error)
+		})
+		.catch(exception => {
+			console.warn(exception);
 		});
 };
 
@@ -164,54 +225,63 @@ Game.prototype.presentPlayerOptions = function () {
 			const assets = keys.map(vehicle => {
 				//retrieve asset from cache
 				const asset = this.cache.retrieve(vehicle);
-				//build a responsive markup since these are images
-				const responsiveMarkup = Engine.buildResponsiveImage(asset, './bundle/responsive-assets/rasters/');
-				//identify a target DOM element within the markup on which, an event occurs
-				const callBackTarget = `#${asset.name}`;
-				//Construct a helper object for when user provides input
-				const callBackOptions = {
-					//params define the context to work on after a call back on the event is triggered
-					//Also defines, any inputs to have handy in that context
-					params: {
-						context: {
-							component: 'player',
-							task: 'init'
+				if (!asset) throw (`vehicle ${vehicle} not available yet`);
+				const proceed = () => { //build a responsive markup since these are images
+					const responsiveMarkup = Engine.buildResponsiveImage(asset, './bundle/responsive-assets/rasters/');
+					//identify a target DOM element within the markup on which, an event occurs
+					const callBackTarget = `#${asset.name}`;
+					//Construct a helper object for when user provides input
+					const callBackOptions = {
+						//params define the context to work on after a call back on the event is triggered
+						//Also defines, any inputs to have handy in that context
+						params: {
+							context: {
+								component: 'player',
+								task: 'init'
+							},
+							input: asset
 						},
-						input: asset
-					},
-					//the target DOM child of the above markup generated, on which an event occurs
-					target: callBackTarget,
-					//event to listen to, on the above target
-					listenTo: 'click'
+						//the target DOM child of the above markup generated, on which an event occurs
+						target: callBackTarget,
+						//event to listen to, on the above target
+						listenTo: 'click'
+					};
+					//present options
+					this.presentOption(responsiveMarkup, callBackOptions);
 				};
-				//present options
-				this.presentOption(responsiveMarkup, callBackOptions);
+				if (asset) proceed();
 				return asset;
 			});
-			$('.option-header')
-				.html("Select A Vehicle");
-			return new Promise((hasBegun, reload) => {
-				let animation;
-				let then = 0;
-				const wait = (now) => {
-					//If the user has not begun the game yet, wait for a maximum of three minutes
-					if (!this.player.moves || this.player.moves <= 0) {
-						animation = window.requestAnimationFrame(wait);
-						then = then || now;
-						let dt = now - then;
-						//If the game has not been begun by three minutes, reload the page
-						if (dt > 180000) {
-							reload();
-						}
-					} else {
-						//If the uaser has begun the game, resolve this promise
-						hasBegun(this.player.moves);
-						window.cancelAnimationFrame(animation);
-					}
-				};
-				window.requestAnimationFrame(wait);
-			});
+			return this.awaitMove();
+		}, error => {
+			throw (error);
 		});
+};
+/*
+ *@awaitMove awaits the user to use a desired trigger on the keyboard, to move the player onto the action scene
+ */
+Game.prototype.awaitMove = function () {
+	return new Promise((hasBegun, reload) => {
+		let animation;
+		let then = 0;
+		const wait = (now) => {
+			//If the user has not begun the game yet, wait for a maximum of three minutes
+			if (!this.player.moves || this.player.moves <= 0) {
+				animation = window.requestAnimationFrame(wait);
+				then = then || now;
+				let dt = now - then;
+				//If the game has not been begun by three minutes, reload the page
+				if (dt > 180000) {
+					reload();
+				}
+			} else {
+				//If the uaser has begun the game, resolve this promise
+				hasBegun(true);
+				window.cancelAnimationFrame(animation);
+			}
+		};
+		window.requestAnimationFrame(wait);
+	});
 };
 /*
  *@presentOption presents a single option for the user to choose from
@@ -220,6 +290,7 @@ Game.prototype.presentPlayerOptions = function () {
 Game.prototype.presentOption = function (markup, callBack) {
 	//Function to call back - generic
 	const Cb = () => {
+		//Once feedback is received, remove available options
 		$('.options')
 			.find(callBack.target.animateOnCallback || '.animate')
 			.toggle('slide', 'fast')
