@@ -11,35 +11,46 @@ class Entity {
 		this.renderer = new Matter()
 			.init();
 		this.bounds = this.renderer.getBounds();
+		this.composite = this.renderer.composite;
 	}
-	init(maxW, maxH) {
-    [this.x, this.y] = this.position();
-		[this.width, this.height] = this.size(maxW, maxH);
+	init(...options) {
+		let [maxW, maxH, minW, minH] = options;
+		[this.width, this.height] = this.size(maxW, maxH, minW, minH);
 		this.lerpFactor = 0.25;
 		//Define an angle of rotation per frame
 		this.radians = 15 * (Math.PI / 180);
 		//initialize a current tilt angle
 		//rotation per rotation call will be the sum total of this.radians and this.currentTilt
 		this.currentTilt = 0;
+		//randomly position this entity
+		[this.x, this.y] = this.position();
 		return this;
+	}
+	defineDPF() {
+		//Set A Distance To Cover Per Frame
+		this.distancePerFrame = {
+			x: Math.ceil((this.bounds.esMaxX) / (this.width)),
+			y: Math.ceil((this.bounds.esMaxY) / (this.height))
+		};
 	}
 	/*
 	 *@size defines a random dimension for this entity
 	 */
-	size(ceilWidth, ceilHeight) {
+	size(...options) {
+		let [ceilWidth, ceilHeight, floorWidth, floorHeight] = options;
 		const ceilW = ceilWidth || this.bounds.maxEntityWidth;
 		const ceilH = ceilHeight || this.bounds.maxEntityHeight;
-		const floorW = this.bounds.minEntityWidth;
-		const floorH = this.bounds.minEntityHeight;
+		const floorW = floorWidth || this.bounds.minEntityWidth;
+		const floorH = floorHeight || this.bounds.minEntityHeight;
 		const randomW = Math.floor(Math.random() * (ceilW - floorW + 1)) + floorW;
 		const randomH = Math.floor(Math.random() * (ceilH - floorH + 1)) + floorH;
 		return [randomW, randomH];
 	}
 	/*
-	 *@render renders this entity on a predefined position on the composite layer
+	 *@render renders this entity on a predefined/specified position on the composite/specified layer
 	 */
-	render(...recipe) {
-		let [x = false, y = false, layer = false, skipClear = false] = recipe;
+	render(...options) {
+		let [x = false, y = false, layer = false, skipClear = false] = options;
 		const X = (x !== false) ? x : this.x;
 		const Y = (y !== false) ? y : this.y;
 		const composite = layer || this.composite;
@@ -52,6 +63,16 @@ class Entity {
 		const randomX = Math.floor(Math.random() * (this.bounds.esMaxX - this.bounds.esMinX + 1)) + this.bounds.esMinX;
 		const randomY = Math.floor(Math.random() * (this.bounds.esMaxY - this.bounds.esMinY + 1)) + this.bounds.esMinY;
 		return [randomX, randomY];
+	}
+	/*
+	 *reposition repositions this entity based on its current position and binding dimensions
+	 */
+	reposition() {
+		const outOfBoundsY = ((this.y + this.height) > this.bounds.esMaxY);
+		if (outOfBoundsY) {
+			const difference = (this.y + this.height) - this.bounds.esMaxY;
+			this.y -= difference;
+		}
 	}
 	/*
 	 *@mapToQuadrant maps this entity on to a predefined quadrant on the composite layer
@@ -165,14 +186,48 @@ class Entity {
 	 *@move moves this entity via LERP
 	 *@params dx,dy are Mandatory, and specify the distances to cover per axis
 	 */
-	move(dx, dy) {
+	move(dx, dy, skipClearOnRender) {
 		this.lerp(dx, dy);
 		//render this player
-		this.render();
+		this.render(false, false, false, skipClearOnRender);
 		//tilt if there is a tilt
 		this.tilt();
 		//Map to a quadrant on the Drawing, after each move
 		const quadrant = this.mapToQuadrant();
+	}
+	/*
+	 *@requestAnimationFrame requests A particular animation
+	 *This method is called once per frame. Can be used to batch / throttle animations
+	 *@param options is MANDATORY, and has to be the delta of now, and time when animation began
+	 *@param animation is Mandatory, and should name the animation to process
+	 */
+	requestAnimationFrame(animation, options) {
+		return this[animation](options);
+	}
+
+	linearProgression(options) {
+		const [time, acceleration, orientation] = options;
+		const dx = (orientation == 'landscape') ? this.distancePerFrame.x : 0;
+		const dy = (orientation == 'portrait') ? this.distancePerFrame.y : 0;
+		const xThreshold = this.x + dx;
+		const yThreshold = this.y + dy;
+		if (xThreshold > this.bounds.esMaxX - this.width / 2) {
+			this.x = this.bounds.esMinX;
+			const randomY = Math.floor(Math.random() * (this.bounds.esMaxY - this.bounds.esMinY + 1)) + this.bounds.esMinY;
+			this.y = randomY;
+		}
+		if (yThreshold > this.bounds.esMaxY - this.height / 2) {
+			this.y = this.bounds.esMinY;
+			const randomX = Math.floor(Math.random() * (this.bounds.esMaxX - this.bounds.esMinX + 1)) + this.bounds.esMinX;
+			this.x = randomX;
+		}
+		const move = () => {
+			const motion = window.requestAnimationFrame(move);
+			this.move(dx, dy, true);
+			if (this.y >= yThreshold || this.x >= xThreshold) {
+				window.cancelAnimationFrame(motion);
+			}
+		};
 	}
 
 }
@@ -200,16 +255,17 @@ class Player extends Entity {
 		//Set A Distance To Cover Per Trigger
 		this.distancePerTrigger = {
 			x: Math.ceil((Drawing._bounds.maxX) / (this.width)),
-			y: Math.floor((Drawing._bounds.maxY) / (this.height))
+			y: Math.ceil((Drawing._bounds.maxY) / (this.height))
 		};
 		this.reset();
+		this.manifest();
 		return this;
 	}
 	reset() {
 		//override pre defined initial positions, and place this player, bang at the center of the bottom most layer
 		this.x = (Drawing._bounds.maxX) / 2;
 		this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
-		this.moves = 0;
+		this.moves = 110;
 	}
 	/*
 	 *@manifest renders and activates the player
@@ -416,6 +472,8 @@ class Blackhole extends Entity {
 	init(avatar) {
 		super.init();
 		this.avatar = avatar;
+		this.reposition();
+		this.defineDPF();
 		return this;
 	}
 }
@@ -431,8 +489,10 @@ class Star extends Entity {
 	init(avatar) {
 		super.init();
 		this.avatar = avatar;
-		this.width = this.bounds.maxEntityWidth * 1.5;
 		this.height = this.bounds.maxEntityHeight * 1.5;
+		this.width = this.height;
+		this.reposition();
+		this.defineDPF();
 		return this;
 	}
 }
@@ -443,12 +503,17 @@ class Planet extends Entity {
 	constructor(avatar_id) {
 		super();
 		this.avatar_id = avatar_id;
-		this.maxHeight = this.bounds.maxEntityHeight * 0.75;
-		this.maxWidth = (4 / 3) * this.maxHeight;
+		this.maxWidth = this.bounds.maxEntityWidth * .75;
+		this.minWidth = this.bounds.minEntityWidth * 1.75;
+		this.minHeight = false;
+		this.maxHeight = false;
 	}
 	init(avatar) {
-		super.init(this.maxWidth, this.maxHeight);
+		super.init(this.maxWidth, this.maxHeight, this.minWidth, this.minHeight);
+		this.height = this.width;
 		this.avatar = avatar;
+		this.reposition();
+		this.defineDPF();
 		return this;
 	}
 }
@@ -459,12 +524,17 @@ class Asteroid extends Entity {
 	constructor(avatar_id) {
 		super();
 		this.avatar_id = avatar_id;
-		this.maxHeight = this.bounds.maxEntityHeight * 0.6;
-		this.maxWidth = (4 / 3) * this.maxHeight;
+		this.maxWidth = this.bounds.maxEntityWidth * .599;
+		this.minWidth = this.bounds.minEntityWidth * 1.25;
+		this.minHeight = false;
+		this.maxHeight = false;
 	}
 	init(avatar) {
-		super.init(this.maxWidth, this.maxHeight);
+		super.init(this.maxWidth, this.maxHeight, this.minWidth, this.minHeight);
+		this.height = (3 / 4) * this.width;
 		this.avatar = avatar;
+		this.reposition();
+		this.defineDPF();
 		return this;
 	}
 }

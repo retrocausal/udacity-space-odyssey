@@ -55,7 +55,7 @@ Game.prototype.restart = function () {
  *@play initiates the fist ever game on reload, or, a replay initiated by happenings and / or user feedback
  */
 Game.prototype.play = function (restart = false) {
-	const firstGame = () => {
+	const freshGame = () => {
 		//ask feedback if this is the first game
 		this.presentPlayerOptions()
 			.then(hasBegun => {
@@ -71,7 +71,8 @@ Game.prototype.play = function (restart = false) {
 	const Restart = () => {
 		this.awaitMove()
 			.then(hasBegun => {
-				this.initLevel(1);
+				this.initLevel(Configurations.get(this)
+					.meta.level);
 			}, reload => {
 				//If the game hasn't begun after three minutes, reload
 				//Since this is a restart, the game essentially resets hard
@@ -82,37 +83,68 @@ Game.prototype.play = function (restart = false) {
 				console.warn(exception);
 			});
 	};
-	return (restart) ? Restart() : firstGame();
+	return (restart) ? Restart() : freshGame();
 }
 /*
  *
  */
 Game.prototype.initLevel = function (level = 1) {
-	//set an epoch for timed behaviours
-	this.epoch = Date.now();
+	let throttle;
 	let requestNewEntities;
 	let lastRequested;
-	//define a throttle to throttle number of entities created post epoch
-	const throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
+	let additionalEntityReq = 0;
+	let then;
+	let acceleration;
+	const orientation = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? "landscape" : "portrait";
 	const timedRequest = (now) => {
 		requestNewEntities = window.requestAnimationFrame(timedRequest);
 		//time keeping stuff. If this is the first time post epoch new entities are requested,
 		//time lag is the difference between game epoch, and now
 		//else, time lag is the difference between now and the last time new entities were requested
 		const time = (!lastRequested) ? (Date.now() - this.epoch) : (now - lastRequested);
-		//fourteen seconds post game epoch, create new throttled number of entites
-		if (!lastRequested && time >= 14000) {
+		//nine seconds post game epoch, create new throttled number of entites
+		if (!lastRequested && time >= 9600) {
 			this.requestEntities(throttle);
 			lastRequested = now;
 		}
-		//eighty three seconds into the game, create the last batch of new entities
-		if (lastRequested && time > 69000) {
+		//thirty six seconds into the game, create the last batch of new entities
+		if (lastRequested && time > 27000) {
 			this.requestEntities(throttle);
-			this.requestEntities(throttle + 1);
+			if (additionalEntityReq > 0) {
+				for (let i = 0; i < additionalEntityReq; i++) {
+					this.requestEntities(++throttle);
+				}
+			}
 			window.cancelAnimationFrame(requestNewEntities);
 		}
 	};
-	window.requestAnimationFrame(timedRequest);
+	const animation = (now) => {
+		const loop = window.requestAnimationFrame(animation);
+		then = then || now;
+		const timeSinceEntityMotion = 0.001 * (now - then);
+		for (const entity of this.entities) {
+			entity.requestAnimationFrame('linearProgression', [
+				timeSinceEntityMotion,
+				acceleration,
+        orientation
+			]);
+		}
+	};
+	//level One
+	const One = () => {
+		Configurations.get(this)
+			.meta.level = 1;
+		//set an epoch for timed behaviours
+		this.epoch = Date.now();
+		//define a throttle to throttle number of entities created post epoch
+		throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
+		additionalEntityReq = 1;
+		acceleration = 1;
+		window.requestAnimationFrame(timedRequest);
+		window.requestAnimationFrame(animation);
+	};
+	One();
+	return this;
 };
 /*
  *@requestEntities requests the game engine, to build, assemble individual non player
@@ -171,6 +203,13 @@ Game.prototype.initEntities = function (entities) {
 				const avatar = this.cache.retrieve(cache_key);
 				if (!avatar) throw (`The avatar for ${entity.constructor.name} is not cached`);
 				entity.init(avatar.value);
+				if (Math.abs(entity.x - this.player.x) <= this.player.width) {
+					entity.x = entity.bounds.esMaxX;
+				}
+				if (Math.abs(entity.y - this.player.y) <= this.player.height) {
+					entity.y = entity.bounds.esMinY;
+				}
+				entity.render(false, false, false, true);
 			}
 		})
 		.catch(exception => {

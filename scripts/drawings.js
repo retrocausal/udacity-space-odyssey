@@ -501,9 +501,9 @@ class Matter extends Drawing {
 			const minEntityWidth = Math.ceil(maxEntityWidth / 3);
 			const minEntityHeight = Math.ceil(maxEntityHeight / 3);
 			const esMinX = (orientation == 'landscape') ? definition.gutter : 0;
-			const esMaxX = (orientation == 'landscape') ? (definition.vmax - definition.gutter) : definition.vmin;
-			const esMinY = Math.ceil(minY + maxEntityHeight + 1);
-			const esMaxY = (orientation == 'portrait') ? (definition.vmax - maxEntityHeight - 1) : (definition.vmin - maxEntityHeight - 1);
+			const esMaxX = (orientation == 'landscape') ? (maxX - definition.gutter) : definition.vmin;
+			const esMinY = Math.ceil(minY + maxEntityHeight + (1 + minEntityHeight / 5));
+			const esMaxY = Math.floor(maxY - maxEntityHeight - (1 + minEntityHeight / 5));
 			const quadrant_0 = {
 				minX,
 				minY,
