@@ -1,147 +1,147 @@
 * {
-	text-align: center;
-	box-sizing: border-box;
-	padding: 0;
-	margin: 0;
-	width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  width: 100%;
 }
 
 BODY {
-	width: auto;
-	padding: inherit;
-	margin: auto;
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: space-around;
+  width: auto;
+  padding: inherit;
+  margin: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
 }
 
 header, footer {
-	display: flex;
-	flex-direction: column;
-	justify-content: space-around;
-	width: 100%;
-	min-height: 1vmin;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 100%;
+  min-height: 1vmin;
 }
 
 .banner {
-	width: 100%;
-	margin: 0.51vmax 0;
+  width: 100%;
+  margin: 0.51vmax 0;
 }
 
 main {
-	padding: 0;
-	min-width: 100%;
-	width: 100%;
-	margin: auto;
-	min-height: 78vh;
-	height: 78vh;
-	position: relative;
+  padding: 0;
+  min-width: 100%;
+  width: 100%;
+  margin: auto;
+  min-height: 78vh;
+  height: 78vh;
+  position: relative;
 }
 
 #primer, #composite, .composite, .options {
-	position: absolute;
-	top: 0;
-	left: 0;
-	z-index: 1;
-	width: auto;
-	max-width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: auto;
+  max-width: 100%;
 }
 
 #composite, .composite {
-	z-index: 2;
+  z-index: 2;
 }
 
 .options {
-	width: 100%;
-	display: flex;
-	justify-content: center;
-	flex-wrap: wrap;
-	align-items: center;
-	z-index: 3;
-	position: absolute;
-	top: 0;
-	left: 0;
-	background: transparent;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  z-index: 3;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: transparent;
 }
 
 .option-header {
-	width: 100%;
-	z-index: 2;
-	margin: 48px 0;
+  width: 100%;
+  z-index: 2;
+  margin: 48px 0;
 }
 
 .responsive {
-	max-width: 100%;
-	width: auto;
-	height: calc((9/16)*50vw);
+  max-width: 100%;
+  width: auto;
+  height: calc((9/16)*50vw);
 }
 
 .responsive-container {
-	width: 50vw;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	text-align: center;
+  width: 50vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 .panel {
-	display: flex;
-	justify-content: center;
-	width: 100%;
-	align-items: center;
-	margin: 1vmax auto;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  align-items: center;
+  margin: 1vmax auto;
 }
 
 .player-controls {
-	display: flex;
-	flex-wrap: wrap;
-	width: 100%;
-	justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: center;
 }
 
 .panel-head {
-	width: 100%;
-	text-align: center;
-	margin: 2vmax 0;
+  width: 100%;
+  text-align: center;
+  margin: 2vmax 0;
 }
 
 .controls {
-	display: flex;
-	width: 50%;
-	flex-wrap: wrap;
-	justify-content: center;
+  display: flex;
+  width: 50%;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .ctrl-up, .ctrl-down {
-	width: 100%;
-	display: flex;
-	justify-content: space-around;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
 }
 
 .ctrl-multiple {
-	width: 72%;
-	display: flex;
-	justify-content: space-between;
+  width: 72%;
+  display: flex;
+  justify-content: space-between;
 }
 
 .ctrl-right, .ctrl-start, .ctrl-left {
-	width: 32%;
+  width: 32%;
 }
 
 .ctrl-image {
-	min-width: 48px;
-	width: 48px;
-	max-width: 100%;
-	min-height: 48px;
-	height: 48px;
+  min-width: 48px;
+  width: 48px;
+  max-width: 100%;
+  min-height: 48px;
+  height: 48px;
 }
 
 #ctrl-up, #ctrl-down, #ctrl-right, #ctrl-left {
-	cursor: pointer;
-	z-index: 10;
+  cursor: pointer;
+  z-index: 10;
 }
 
 figure, picture {
-	max-width: 100%;
-	width: auto;
+  max-width: 100%;
+  width: auto;
 }
