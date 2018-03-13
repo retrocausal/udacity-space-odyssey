@@ -8,12 +8,12 @@ const Game = function () {
   //define a place to look for all the images to be used at various times.
   /*NOTE This also serves, as a prefix for the cache key to be generated per asset cached*/
   this.staticAssetsRoot = "./assets/rasters/";
-  Drawing._layers = new WeakMap();
 };
 /*
  *@init initializes the game, initializes individual components
  */
 Game.prototype.init = function () {
+  Engine.request('Layers');
   //gather configurables
   const Configuration = Configurations.get(this)
     .configuration;
@@ -60,7 +60,7 @@ Game.prototype.play = function (restart = false) {
     this.presentPlayerOptions()
       .then(hasBegun => {
         this.initLevel(1);
-      }, reload => {
+      }, isStalled => {
         //If the game hasn't begun, reload
         window.location.reload(true);
       })
@@ -73,7 +73,7 @@ Game.prototype.play = function (restart = false) {
       .then(hasBegun => {
         this.initLevel(Configurations.get(this)
           .meta.level);
-      }, reload => {
+      }, isStalled => {
         //If the game hasn't begun after three minutes, reload
         //Since this is a restart, the game essentially resets hard
         //And the user will need to begin all over again
@@ -92,7 +92,7 @@ Game.prototype.initLevel = function (level = 1) {
   let throttle;
   let requestNewEntities;
   let lastRequested;
-  let additionalEntityReq = 0;
+  let additionalEntityRequests = 0;
   let then;
   let acceleration;
   const orientation = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? "landscape" : "portrait";
@@ -110,8 +110,8 @@ Game.prototype.initLevel = function (level = 1) {
     //thirty six seconds into the game, create the last batch of new entities
     if (lastRequested && time > 27000) {
       this.requestEntities(throttle);
-      if (additionalEntityReq > 0) {
-        for (let i = 0; i < additionalEntityReq; i++) {
+      if (additionalEntityRequests > 0) {
+        for (let i = 0; i < additionalEntityRequests; i++) {
           this.requestEntities(++throttle);
         }
       }
@@ -140,8 +140,8 @@ Game.prototype.initLevel = function (level = 1) {
     this.epoch = Date.now();
     //define a throttle to throttle number of entities created post epoch
     throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
-    additionalEntityReq = 1;
-    acceleration = 1;
+    additionalEntityRequests = 1;
+    acceleration = 1.5;
     window.requestAnimationFrame(timedRequest);
     window.requestAnimationFrame(animation);
   };
@@ -204,14 +204,12 @@ Game.prototype.initEntities = function (entities) {
         const cache_key = `${this.staticAssetsRoot}${id}`;
         const avatar = this.cache.retrieve(cache_key);
         if (!avatar) throw (`The avatar for ${entity.constructor.name} is not cached`);
-        entity.init(avatar.value);
-        if (Math.abs(entity.x - this.player.x) <= this.player.width) {
-          entity.x = entity.bounds.esMaxX;
-        }
-        if (Math.abs(entity.y - this.player.y) <= this.player.height) {
-          entity.y = entity.bounds.esMinY;
-        }
-        entity.render(false, false, false, true);
+        entity.init(avatar.value, this.player);
+        if (this.epoch)
+          entity.x = entity.bounds.esMinX;
+        //render the entity and skipClear on render
+        entity.render(entity.x, entity.y, false, true);
+        //set a meta property for identifying entities ready for animation
         entity.hasBeenRenderedOnCreation = true;
       }
     })

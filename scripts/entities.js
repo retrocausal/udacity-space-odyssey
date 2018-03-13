@@ -60,18 +60,32 @@
      *@position randomly generates an initial position for this entity on the composite layer
      */
     position() {
-      const randomX = Math.floor(Math.random() * (this.bounds.esMaxX - this.bounds.esMinX + 1)) + this.bounds.esMinX;
-      const randomY = Math.floor(Math.random() * (this.bounds.esMaxY - this.bounds.esMinY + 1)) + this.bounds.esMinY;
+      const randomX = Math.floor(Math.random() * ((this.bounds.esMaxX - this.bounds.maxEntityWidth) - this.bounds.esMinX + 1)) + this.bounds.esMinX;
+      const randomY = Math.floor(Math.random() * ((this.bounds.esMaxY - this.bounds.maxEntityHeight) - this.bounds.esMinY + 1)) + this.bounds.esMinY;
       return [randomX, randomY];
     }
     /*
-     *reposition repositions this entity based on its current position and binding dimensions
+     *Adaptive adapting per context on a frame
      */
-    reposition() {
-      const outOfBoundsY = ((this.y + this.height) > this.bounds.esMaxY);
-      if (outOfBoundsY) {
-        const difference = (this.y + this.height) - this.bounds.esMaxY;
-        this.y -= difference;
+    adapt(orientation) {
+      let queryY, queryX;
+      queryY = this.y + this.height;
+      queryX = this.x;
+      const max = Math.max(this.height, this.width);
+      const min = Math.min(this.height, this.width);
+      const exceedsesMaxY = (queryY >= this.bounds.esMaxY);
+      const exceedsesMaxX = (queryX >= this.bounds.esMaxX);
+      if (exceedsesMaxY && orientation == 'portrait') {
+        this.y = this.bounds.esMinY;
+        const ceil = this.bounds.esMaxX - max;
+        const floor = this.bounds.esMinX;
+        this.x = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
+      }
+      if (exceedsesMaxX && orientation == 'landscape') {
+        this.x = this.bounds.esMinX - this.width;
+        const ceil = this.bounds.esMaxY - max - min / 2;
+        const floor = this.bounds.esMinY + min;
+        this.y = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
       }
     }
     /*
@@ -101,6 +115,30 @@
       };
       //return a list of quadrants this entity occupies at the moment
       return quadrants.reduce(reducer, new Set());
+    }
+    /*
+     *@isSuperposedOn checks for collisions
+     */
+    isSuperposedOn(object) {
+      const objectMaxHorizontalSpan = object.x + object.width;
+      const objectMinHorizontalSpan = object.x - object.width / 2;
+      const objectMaxVerticalSpan = object.y + object.height;
+      const objectMinVerticalSpan = object.y - object.height / 2;
+      const selfMaxHorizontalSpan = this.x + this.width;
+      const selfMinHorizontalSpan = this.x - this.width / 2;
+      const selfMaxVerticalSpan = this.y + this.height;
+      const selfMinVerticalSpan = this.y - this.height / 2;
+
+      const selfMinXInObjectSpan = (objectMinHorizontalSpan < selfMinHorizontalSpan && selfMinHorizontalSpan < objectMaxHorizontalSpan);
+      const selfMaxXInObjectSpan = (objectMinHorizontalSpan < selfMaxHorizontalSpan && selfMaxHorizontalSpan < objectMaxHorizontalSpan);
+
+      const selfMinYInObjectSpan = (objectMinVerticalSpan < selfMinVerticalSpan && selfMinVerticalSpan < objectMaxVerticalSpan);
+      const selfMaxYInObjectSpan = (objectMinVerticalSpan < selfMaxVerticalSpan && selfMaxVerticalSpan < objectMaxVerticalSpan);
+
+      const selfXInObjectSpan = (objectMinHorizontalSpan < this.x && this.x < objectMaxHorizontalSpan);
+      const selfYInObjectSpan = (objectMinVerticalSpan < this.y && this.y < objectMaxVerticalSpan);
+
+      return (selfXInObjectSpan || selfYInObjectSpan || selfMinXInObjectSpan || selfMinYInObjectSpan || selfMaxXInObjectSpan || selfMaxYInObjectSpan);
     }
     /*
      *@increment increments the number of an entity on the drawing
@@ -187,14 +225,10 @@
      */
     interpolatedMotion(dx, dy) {
       this.lerp(dx, dy);
-      //render this player without tilt, if there is no angle of tilt
-      if (!this.currentTilt) {
-        this.render();
-      }
-      //or, tilt and render if there is a tilt
-      else {
+      const render = /*render this player without tilt, if there is no angle of tilt*/
+        (!this.currentTilt) ? this.render() :
+        /*or, tilt and render if there is a tilt*/
         this.tilt();
-      }
       //Map to a quadrant on the Drawing, after each move
       this.quadrantsBoundTo = this.mapToQuadrant();
     }
@@ -208,25 +242,21 @@
       return this[animation](options);
     }
     linearProgression(options) {
-      const [time, acceleration, orientation] = options;
-      const dx = (orientation == 'landscape') ? this.distancePerSecond.x : 0;
-      const dy = (orientation == 'portrait') ? this.distancePerSecond.y : 0;
+      const [time, acceleration, orientation, swap] = options;
+      let dx, dy;
+      if (!swap) {
+        dx = (orientation == 'landscape') ? this.distancePerSecond.x : 0;
+        dy = (orientation == 'portrait') ? this.distancePerSecond.y : 0;
+      } else {
+        dx = (orientation == 'landscape') ? 0 : this.distancePerSecond.x;
+        dy = (orientation == 'portrait') ? 0 : this.distancePerSecond.y;
+      }
       //define distance this frame
-      const Dx = Math.round((dx * time) * 100) / 100;
-      const Dy = Math.round((dy * time) * 100) / 100;
+      const Dx = Math.round((dx * time * acceleration) * 100) / 100;
+      const Dy = Math.round((dy * time * acceleration) * 100) / 100;
       this.x = this.x + Dx;
       this.y = this.y + Dy;
-      if (this.x > this.bounds.esMaxX - this.width / 2) {
-        this.x = this.bounds.esMinX;
-        const randomY = Math.floor(Math.random() * ((this.bounds.esMaxY - this.height) - (this.bounds.esMinY + this.height / 2) + 1)) + (this.bounds.esMinY + this.height / 2);
-        this.y = randomY;
-      }
-      if (this.y > this.bounds.esMaxY - this.height / 2) {
-        this.y = this.bounds.esMinY;
-        const randomX = Math.floor(Math.random() * ((this.bounds.esMaxX - this.width) - this.bounds.esMinX + 1)) + this.bounds.esMinX;
-        this.x = randomX;
-      }
-      //this.render(this.x, this.y, this.composite, true);
+      this.adapt(orientation);
       const angle = Math.PI / 180;
       this.rotate('left', angle, false);
       this.quadrantsBoundTo = this.mapToQuadrant();
@@ -473,10 +503,40 @@
     init(avatar) {
       super.init();
       this.avatar = avatar;
-      this.reposition();
+      this.y = this.bounds.esMaxY / 2;
+      this.x = this.bounds.esMaxX / 2;
       this.defineDPS();
+      this.gobbleThreshold = this.bounds.maxEntityHeight * 1.5;
+      this.gain = 0;
+      this.oscillation = 0;
+      this.oscillationThreshold = (this.bounds.esMaxY / 2 - this.bounds.esMinY);
       return this;
     }
+    linearProgression(options) {
+      const [time, acceleration, orientation] = options;
+      //blackholes need to grow in size
+      this.composite.twoDimContext.globalAlpha = 1;
+      this.gain += (this.gain <= (2 * this.gobbleThreshold)) ? (this.gobbleThreshold / 50) * time : 0;
+      this.width += (this.gain <= (2 * this.gobbleThreshold)) ? (this.gobbleThreshold / 50) * time : 0;
+      this.height = this.width;
+      const oscillation = (this.oscillationThreshold / 50) * time;
+      if (this.gain >= (2 * this.gobbleThreshold)) {
+        this.width = (this.bounds.esMaxY - this.bounds.esMinY) / 2;
+        this.height = this.width;
+        if (this.oscillation < this.oscillationThreshold) {
+          this.y -= oscillation;
+          this.oscillation += oscillation;
+        } else {
+          this.y += oscillation;
+          if (this.y >= this.bounds.esMaxY / 2)
+            this.oscillation = 0;
+        }
+      }
+      const angle = Math.PI / 180;
+      this.quadrantsBoundTo = this.mapToQuadrant();
+      this.rotate('right', angle, false);
+    }
+
   }
 
   /*
@@ -487,14 +547,24 @@
       super();
       this.avatar_id = avatar_id;
     }
-    init(avatar) {
+    init(avatar, player) {
       super.init();
       this.avatar = avatar;
       this.height = this.bounds.maxEntityHeight * 1.5;
       this.width = this.height;
-      this.reposition();
       this.defineDPS();
       return this;
+    }
+    linearProgression(options) {
+      const [time] = options;
+      this.composite.twoDimContext.globalAlpha = 1;
+      this.x = this.bounds.esMaxX / 2;
+      this.y = this.bounds.esMaxY / 2 + this.height;
+      const angle = Math.PI / 180;
+      this.rotate('left', angle, false);
+      this.quadrantsBoundTo = this.mapToQuadrant();
+      this.height -= (this.height > 0) ? (this.height / 100) * time : 0;
+      this.width -= (this.height > 0) ? 0 : (this.width / 100) * time;
     }
   }
   /*
@@ -509,11 +579,10 @@
       this.minHeight = false;
       this.maxHeight = false;
     }
-    init(avatar) {
+    init(avatar, player) {
       super.init(this.maxWidth, this.maxHeight, this.minWidth, this.minHeight);
       this.height = this.width;
       this.avatar = avatar;
-      this.reposition();
       this.defineDPS();
       return this;
     }
@@ -530,11 +599,10 @@
       this.minHeight = false;
       this.maxHeight = false;
     }
-    init(avatar) {
+    init(avatar, player) {
       super.init(this.maxWidth, this.maxHeight, this.minWidth, this.minHeight);
       this.height = (9 / 16) * this.width;
       this.avatar = avatar;
-      this.reposition();
       this.defineDPS();
       return this;
     }

@@ -8,7 +8,7 @@ class Drawing {
    * Initializes a new map of canvases,scroallables
    */
   constructor() {
-    this.layers = Drawing._layers;
+
   }
   static set _layers(map) {
     return (this.layers) ? false : (this.layers = map);
@@ -29,7 +29,7 @@ class Drawing {
     return this.QEM;
   }
   static get composite() {
-    return Drawing._layers.get(document.querySelector('#composite')) || false;
+    return this._layers.get(document.querySelector('#composite')) || false;
   }
   static openFrame() {
     const composite = Drawing.composite;
@@ -61,7 +61,7 @@ class Drawing {
    *@getPrimer returns a previously set primary layer if any
    */
   getPrimer() {
-    return this.layers.get(document.querySelector('#primer')) || false;
+    return Drawing._layers.get(document.querySelector('#primer')) || false;
   }
   /*
    *@setPrimer maps a new canvas on the DOM to its definiton, and identifies it as the primary layer
@@ -69,7 +69,7 @@ class Drawing {
   setPrimer() {
     const layer = this.newLayer(...this.getParentDimensions());
     this.identify('primer', layer.canvas);
-    this.layers.set(layer.canvas, layer);
+    Drawing._layers.set(layer.canvas, layer);
     return layer;
   }
   /*
@@ -85,7 +85,7 @@ class Drawing {
    *@getComposite returns a previously set composite layer if any
    */
   getComposite() {
-    return this.layers.get(document.querySelector('#composite')) || false;
+    return Drawing._layers.get(document.querySelector('#composite')) || false;
   }
   /*
    *@setComposite maps a canvas on the DOM to its definiton, and identifies it as the compositing layer
@@ -93,7 +93,7 @@ class Drawing {
   setComposite() {
     const layer = this.newLayer(...this.getParentDimensions());
     this.identify('composite', layer.canvas);
-    this.layers.set(layer.canvas, layer);
+    Drawing._layers.set(layer.canvas, layer);
     return layer;
   }
   /*
@@ -104,7 +104,7 @@ class Drawing {
     const layer = this.newLayer(...this.getParentDimensions());
     this.identify(id, layer.canvas);
     layer.canvas.classList.add('composite');
-    this.layers.set(layer.canvas, layer);
+    Drawing._layers.set(layer.canvas, layer);
     return layer;
   }
   /*
@@ -248,7 +248,7 @@ class Drawing {
    * NOTE needs to be called before any animation on a mandate
    */
   initAnimatableFrame(sprite, definiton) {
-    const canvasDefinition = definiton || this.layers.get(this.primer);
+    const canvasDefinition = definiton || Drawing._layers.get(this.primer);
     const width = Math.floor(sprite.width);
     const height = Math.floor(sprite.height);
     const unitLength = (canvasDefinition.orientation === "portrait") ? height : width;
@@ -512,10 +512,10 @@ class Matter extends Drawing {
       const maxEntityWidth = Math.floor(maxEntityHeight * (4 / 3));
       const minEntityWidth = Math.ceil(maxEntityWidth / 3);
       const minEntityHeight = Math.ceil(maxEntityHeight / 3);
-      const esMinX = (orientation == 'landscape') ? definition.gutter : 0;
-      const esMaxX = (orientation == 'landscape') ? (maxX - definition.gutter) : definition.vmin;
-      const esMinY = Math.ceil(minY + maxEntityHeight + (1 + minEntityHeight / 5));
-      const esMaxY = Math.floor(maxY - maxEntityHeight - (1 + minEntityHeight / 5));
+      const esMinX = minX;
+      const esMaxX = maxX;
+      const esMinY = Math.ceil(minY + maxEntityHeight);
+      const esMaxY = Math.floor(maxY - maxEntityHeight);
       const quadrant_0 = {
         minX,
         minY,
