@@ -514,8 +514,8 @@ class Matter extends Drawing {
       const minEntityHeight = Math.ceil(maxEntityHeight / 3);
       const esMinX = minX;
       const esMaxX = maxX;
-      const esMinY = Math.ceil(minY + maxEntityHeight);
-      const esMaxY = Math.floor(maxY - maxEntityHeight);
+      const esMinY = Math.floor(minY + maxEntityHeight + minEntityHeight / 2);
+      const esMaxY = Math.floor(maxY - maxEntityHeight - minEntityHeight / 2);
       const quadrant_0 = {
         minX,
         minY,

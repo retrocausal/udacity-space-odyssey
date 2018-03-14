@@ -10,7 +10,8 @@
     constructor() {
       this.renderer = new Matter()
         .init();
-      this.bounds = this.renderer.getBounds();
+      const bounds = this.renderer.getBounds();
+      this.bounds = Object.create(bounds);
       this.composite = this.renderer.composite;
     }
     init(...options) {
@@ -71,8 +72,8 @@
       let queryY, queryX;
       queryY = this.y + this.height;
       queryX = this.x;
-      const max = Math.max(this.height, this.width);
-      const min = Math.min(this.height, this.width);
+      const max = this.max || Math.max(this.height, this.width);
+      const min = this.min || Math.min(this.height, this.width);
       const exceedsesMaxY = (queryY >= this.bounds.esMaxY);
       const exceedsesMaxX = (queryX >= this.bounds.esMaxX);
       if (exceedsesMaxY && orientation == 'portrait') {
@@ -83,8 +84,8 @@
       }
       if (exceedsesMaxX && orientation == 'landscape') {
         this.x = this.bounds.esMinX - this.width;
-        const ceil = this.bounds.esMaxY - max - min / 2;
-        const floor = this.bounds.esMinY + min;
+        const ceil = this.bounds.esMaxY;
+        const floor = this.bounds.esMinY;
         this.y = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
       }
     }
@@ -94,18 +95,31 @@
     mapToQuadrant() {
       //gather pre defined quadrants
       const quadrants = Drawing._bounds.quadrants;
+      const max = this.max || Math.max(this.height, this.width);
+      const threshold = max / 2;
       //identify quadrants this entity is bound by, depending on its current position
       const reducer = (accumalate, quadrant) => {
-        const xBound = ((this.x + this.width / 2) >= quadrant.minX && (this.x + this.width / 2) <= quadrant.maxX) ||
-          ((this.x - this.width / 2) >= quadrant.minX && (this.x - this.width / 2) <= quadrant.maxX);
-        const yBound = ((this.y + this.height / 2) >= quadrant.minY && (this.y + this.height / 2) <= quadrant.maxY) ||
-          ((this.y) >= quadrant.minY && (this.y) <= quadrant.maxY);
+        let quadrantMaxHorizontalSpan = quadrant.maxX;
+        let quadrantMinHorizontalSpan = quadrant.minX;
+        let quadrantMaxVerticalSpan = quadrant.maxY;
+        let quadrantMinVerticalSpan = quadrant.minY;
+        if (quadrant.id == 0 || 3) {
+          quadrantMinHorizontalSpan -= max;
+        } else {
+          quadrantMaxHorizontalSpan += max;
+        }
+
+        const quadrantXBound = (quadrantMinHorizontalSpan <= (this.x) && (this.x) <= quadrantMaxHorizontalSpan) || (quadrantMinHorizontalSpan <= (this.x - max / 2) && (this.x - max / 2) <= quadrantMaxHorizontalSpan) || (quadrantMinHorizontalSpan <= (this.x + max / 2) && (this.x + max / 2) <= quadrantMaxHorizontalSpan);
+
+        const quadrantYBound = (quadrantMinVerticalSpan <= (this.y) && (this.y) <= quadrantMaxVerticalSpan) || (quadrantMinVerticalSpan <= (this.y - max / 2) && (this.y - max / 2) <= quadrantMaxVerticalSpan) || (quadrantMinVerticalSpan <= (this.y + max / 2) && (this.y + max / 2) <= quadrantMaxVerticalSpan);
+
+        const investigate = ((Drawing._bounds.minX - max) <= this.x && this.x <= (Drawing._bounds.maxX + max)) && ((Drawing._bounds.minY) <= this.y && this.y <= (Drawing._bounds.maxY));
         //If this entity is bound by the current quadrant being investigated, add it to the set of entities
         //mapped by the current quadrant
-        if (xBound && yBound) {
-          accumalate.add(quadrant);
+        if (investigate && (quadrantXBound && quadrantYBound)) {
           Drawing._QEM.get(quadrant)
             .add(this);
+          accumalate.add(Drawing._QEM.get(quadrant));
         } //else, delete this entity from the set of entities mapped by the current quadrant
         else {
           Drawing._QEM.get(quadrant)
@@ -114,20 +128,24 @@
         return accumalate;
       };
       //return a list of quadrants this entity occupies at the moment
-      return quadrants.reduce(reducer, new Set());
+      return (quadrants.reduce(reducer, new Set()));
     }
     /*
      *@isSuperposedOn checks for collisions
      */
     isSuperposedOn(object) {
-      const objectMaxHorizontalSpan = object.x + object.width;
-      const objectMinHorizontalSpan = object.x - object.width / 2;
-      const objectMaxVerticalSpan = object.y + object.height;
-      const objectMinVerticalSpan = object.y - object.height / 2;
-      const selfMaxHorizontalSpan = this.x + this.width;
-      const selfMinHorizontalSpan = this.x - this.width / 2;
-      const selfMaxVerticalSpan = this.y + this.height;
-      const selfMinVerticalSpan = this.y - this.height / 2;
+      const max = this.max || Math.max(this.height, this.width);
+      const min = this.min || Math.min(this.height, this.width);
+      const omax = object.max || Math.max(object.height, object.width);
+      const omin = object.min || Math.min(object.height, object.width);
+      const objectMaxHorizontalSpan = object.x + omax / 2;
+      const objectMinHorizontalSpan = object.x - omax / 2;
+      const objectMaxVerticalSpan = object.y + omax / 2;
+      const objectMinVerticalSpan = object.y - omax / 2;
+      const selfMaxHorizontalSpan = this.x + max / 2;
+      const selfMinHorizontalSpan = this.x - max / 2;
+      const selfMaxVerticalSpan = this.y + max / 2;
+      const selfMinVerticalSpan = this.y - max / 2;
 
       const selfMinXInObjectSpan = (objectMinHorizontalSpan < selfMinHorizontalSpan && selfMinHorizontalSpan < objectMaxHorizontalSpan);
       const selfMaxXInObjectSpan = (objectMinHorizontalSpan < selfMaxHorizontalSpan && selfMaxHorizontalSpan < objectMaxHorizontalSpan);
@@ -508,32 +526,51 @@
       this.defineDPS();
       this.gobbleThreshold = this.bounds.maxEntityHeight * 1.5;
       this.gain = 0;
+      this.pan = 0;
       this.oscillation = 0;
       this.oscillationThreshold = (this.bounds.esMaxY / 2 - this.bounds.esMinY);
+      this.gainThreshold = (this.bounds.esMaxY - this.bounds.esMinY) / 2;
       return this;
     }
     linearProgression(options) {
       const [time, acceleration, orientation] = options;
       //blackholes need to grow in size
       this.composite.twoDimContext.globalAlpha = 1;
-      this.gain += (this.gain <= (2 * this.gobbleThreshold)) ? (this.gobbleThreshold / 50) * time : 0;
-      this.width += (this.gain <= (2 * this.gobbleThreshold)) ? (this.gobbleThreshold / 50) * time : 0;
+      this.width += (this.width >= this.gainThreshold) ? 0 : (this.gobbleThreshold / 30 * time);
       this.height = this.width;
-      const oscillation = (this.oscillationThreshold / 50) * time;
-      if (this.gain >= (2 * this.gobbleThreshold)) {
-        this.width = (this.bounds.esMaxY - this.bounds.esMinY) / 2;
-        this.height = this.width;
+      const oscillation = this.oscillationThreshold * time * this.lerpFactor;
+      if (this.width >= this.gainThreshold) {
+        this.max = this.max || Math.max(this.height, this.width);
+        this.min = this.min || Math.min(this.height, this.width);
+        this.bounds.esMinY = this.bounds.esMinY || Drawing._bounds.minY + this.max + this.bounds.maxEntityHeight + 3;
+        this.bounds.esMaxY = this.bounds.esMaxY || Drawing._bounds.maxY - this.max - this.bounds.maxEntityHeight - 3;
         if (this.oscillation < this.oscillationThreshold) {
           this.y -= oscillation;
           this.oscillation += oscillation;
         } else {
           this.y += oscillation;
-          if (this.y >= this.bounds.esMaxY / 2)
+          if (this.y >= this.bounds.esMaxY / 2) {
             this.oscillation = 0;
+          }
+        }
+        this.x -= (this.distancePerSecond.x) * time * acceleration;
+        if (this.x <= -this.width) {
+          this.x = this.bounds.esMaxX;
+          this.distancePerSecond.x += this.lerpFactor + (time * acceleration * 100) / 100;
+          this.pan++;
         }
       }
       const angle = Math.PI / 180;
       this.quadrantsBoundTo = this.mapToQuadrant();
+      if (this.pan >= 1) {
+        const entities = new Set();
+        for (let quadrant of this.quadrantsBoundTo) {
+          for (const entity of quadrant) {
+            entities.add(entity);
+          }
+        }
+        console.log(entities);
+      }
       this.rotate('right', angle, false);
     }
 
@@ -552,19 +589,26 @@
       this.avatar = avatar;
       this.height = this.bounds.maxEntityHeight * 1.5;
       this.width = this.height;
+      this.y = this.bounds.esMaxY / 2 + this.height;
+      this.x = this.bounds.esMaxX / 2;
+      this.max = Math.max(this.height, this.width);
+      this.min = Math.min(this.height, this.width);
+      this.bounds.esMinY = this.bounds.esMinY + this.max;
+      this.bounds.esMaxY = this.bounds.esMaxY - this.max;
       this.defineDPS();
       return this;
     }
     linearProgression(options) {
       const [time] = options;
       this.composite.twoDimContext.globalAlpha = 1;
-      this.x = this.bounds.esMaxX / 2;
-      this.y = this.bounds.esMaxY / 2 + this.height;
       const angle = Math.PI / 180;
       this.rotate('left', angle, false);
       this.quadrantsBoundTo = this.mapToQuadrant();
-      this.height -= (this.height > 0) ? (this.height / 100) * time : 0;
-      this.width -= (this.height > 0) ? 0 : (this.width / 100) * time;
+      this.height -= (this.height > 0) ? (this.height / 32) * time : 0;
+      this.width -= (this.height > 0) ? 0 : (this.width / 72) * time;
+      if (this.height <= 0 && this.width <= 0) {
+        this.x = -this.bounds.maxEntityWidth;
+      }
     }
   }
   /*
@@ -584,6 +628,10 @@
       this.height = this.width;
       this.avatar = avatar;
       this.defineDPS();
+      this.max = Math.max(this.height, this.width);
+      this.min = Math.min(this.height, this.width);
+      this.bounds.esMinY = this.bounds.esMinY + this.max;
+      this.bounds.esMaxY = this.bounds.esMaxY - this.max;
       return this;
     }
   }
@@ -604,6 +652,10 @@
       this.height = (9 / 16) * this.width;
       this.avatar = avatar;
       this.defineDPS();
+      this.max = Math.max(this.height, this.width);
+      this.min = Math.min(this.height, this.width);
+      this.bounds.esMinY = this.bounds.esMinY + this.max;
+      this.bounds.esMaxY = this.bounds.esMaxY - this.max
       return this;
     }
   }
