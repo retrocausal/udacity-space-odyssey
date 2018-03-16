@@ -68,7 +68,7 @@
     /*
      *Adaptive adapting per context on a frame
      */
-    adapt(orientation) {
+    adapt(orientation = 'landscape') {
       let queryY, queryX;
       queryY = this.y + this.height;
       queryX = this.x;
@@ -96,30 +96,36 @@
       //gather pre defined quadrants
       const quadrants = Drawing._bounds.quadrants;
       const max = this.max || Math.max(this.height, this.width);
-      const threshold = max / 2;
+      const threshold = this.height / 2;
       //identify quadrants this entity is bound by, depending on its current position
       const reducer = (accumalate, quadrant) => {
+        //define max and min binding canvas quadrant positions
         let quadrantMaxHorizontalSpan = quadrant.maxX;
         let quadrantMinHorizontalSpan = quadrant.minX;
         let quadrantMaxVerticalSpan = quadrant.maxY;
         let quadrantMinVerticalSpan = quadrant.minY;
+        //If we are looking at quadrant bounds that involve canvas bounds,
+        //we need to extend the range by the width of this entity
+        //because, an entity is not off canvas, until, the entire entity has moved off canvas
         if (quadrant.id == 0 || 3) {
           quadrantMinHorizontalSpan -= max;
         } else {
           quadrantMaxHorizontalSpan += max;
         }
-
-        const quadrantXBound = (quadrantMinHorizontalSpan <= (this.x) && (this.x) <= quadrantMaxHorizontalSpan) || (quadrantMinHorizontalSpan <= (this.x - max / 2) && (this.x - max / 2) <= quadrantMaxHorizontalSpan) || (quadrantMinHorizontalSpan <= (this.x + max / 2) && (this.x + max / 2) <= quadrantMaxHorizontalSpan);
-
-        const quadrantYBound = (quadrantMinVerticalSpan <= (this.y) && (this.y) <= quadrantMaxVerticalSpan) || (quadrantMinVerticalSpan <= (this.y - max / 2) && (this.y - max / 2) <= quadrantMaxVerticalSpan) || (quadrantMinVerticalSpan <= (this.y + max / 2) && (this.y + max / 2) <= quadrantMaxVerticalSpan);
-
+        //This entitiy is quadrant bounds along the x axis if, either of the three points
+        //entity.x / entity.x -height/2 / entity.x +height/2 exist within the bounds of the quadrant
+        //we use the max dimension, and not the width along x and height along y because, the entities are //constantly rotating along the y axis
+        const quadrantXBound = (quadrantMinHorizontalSpan <= (this.x) && (this.x) <= quadrantMaxHorizontalSpan) || (quadrantMinHorizontalSpan <= (this.x - threshold) && (this.x - threshold) <= quadrantMaxHorizontalSpan) || (quadrantMinHorizontalSpan <= (this.x + threshold) && (this.x + threshold) <= quadrantMaxHorizontalSpan);
+        //similar to the considerations above, for entity.y
+        const quadrantYBound = (quadrantMinVerticalSpan <= (this.y) && (this.y) <= quadrantMaxVerticalSpan) || (quadrantMinVerticalSpan <= (this.y - threshold) && (this.y - threshold) <= quadrantMaxVerticalSpan) || (quadrantMinVerticalSpan <= (this.y + threshold) && (this.y + threshold) <= quadrantMaxVerticalSpan);
+        //Do not bind an entity that is off canvas
         const investigate = ((Drawing._bounds.minX - max) <= this.x && this.x <= (Drawing._bounds.maxX + max)) && ((Drawing._bounds.minY) <= this.y && this.y <= (Drawing._bounds.maxY));
         //If this entity is bound by the current quadrant being investigated, add it to the set of entities
         //mapped by the current quadrant
         if (investigate && (quadrantXBound && quadrantYBound)) {
           Drawing._QEM.get(quadrant)
             .add(this);
-          accumalate.add(Drawing._QEM.get(quadrant));
+          accumalate.add(quadrant);
         } //else, delete this entity from the set of entities mapped by the current quadrant
         else {
           Drawing._QEM.get(quadrant)
@@ -128,35 +134,27 @@
         return accumalate;
       };
       //return a list of quadrants this entity occupies at the moment
-      return (quadrants.reduce(reducer, new Set()));
+      const qbt = quadrants.reduce(reducer, new Set());
+      return (qbt.size > 0) ? qbt : new Set();
     }
     /*
      *@isSuperposedOn checks for collisions
      */
     isSuperposedOn(object) {
-      const max = this.max || Math.max(this.height, this.width);
-      const min = this.min || Math.min(this.height, this.width);
-      const omax = object.max || Math.max(object.height, object.width);
-      const omin = object.min || Math.min(object.height, object.width);
-      const objectMaxHorizontalSpan = object.x + omax / 2;
-      const objectMinHorizontalSpan = object.x - omax / 2;
-      const objectMaxVerticalSpan = object.y + omax / 2;
-      const objectMinVerticalSpan = object.y - omax / 2;
-      const selfMaxHorizontalSpan = this.x + max / 2;
-      const selfMinHorizontalSpan = this.x - max / 2;
-      const selfMaxVerticalSpan = this.y + max / 2;
-      const selfMinVerticalSpan = this.y - max / 2;
+      const oradius = object.height / 2;
+      const radius = this.height / 2;
+      const deltaX = Math.abs(this.x - object.x);
+      const deltaY = Math.abs(this.y - object.y);
+      const hypotenuse = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const threshold = oradius + radius;
+      const altRadius = this.width / 2;
+      const altoradius = object.width / 2;
+      const altThreshold = altRadius + altoradius;
+      if (object.constructor.name == 'Player') {
 
-      const selfMinXInObjectSpan = (objectMinHorizontalSpan < selfMinHorizontalSpan && selfMinHorizontalSpan < objectMaxHorizontalSpan);
-      const selfMaxXInObjectSpan = (objectMinHorizontalSpan < selfMaxHorizontalSpan && selfMaxHorizontalSpan < objectMaxHorizontalSpan);
-
-      const selfMinYInObjectSpan = (objectMinVerticalSpan < selfMinVerticalSpan && selfMinVerticalSpan < objectMaxVerticalSpan);
-      const selfMaxYInObjectSpan = (objectMinVerticalSpan < selfMaxVerticalSpan && selfMaxVerticalSpan < objectMaxVerticalSpan);
-
-      const selfXInObjectSpan = (objectMinHorizontalSpan < this.x && this.x < objectMaxHorizontalSpan);
-      const selfYInObjectSpan = (objectMinVerticalSpan < this.y && this.y < objectMaxVerticalSpan);
-
-      return (selfXInObjectSpan || selfYInObjectSpan || selfMinXInObjectSpan || selfMinYInObjectSpan || selfMaxXInObjectSpan || selfMaxYInObjectSpan);
+      }
+      //return (hypotenuse < threshold) || (hypotenuse < altThreshold);
+      return false;
     }
     /*
      *@increment increments the number of an entity on the drawing
@@ -261,7 +259,10 @@
     }
     linearProgression(options) {
       const [time, acceleration, orientation, swap] = options;
+      //hack to deflate the browser's animation frame throttle on inactive tabs
+      const Time = (time > 0.1 || time <= 0) ? 0.1 : time;
       let dx, dy;
+      //if a request for swapping orientation is made, swap distances to move
       if (!swap) {
         dx = (orientation == 'landscape') ? this.distancePerSecond.x : 0;
         dy = (orientation == 'portrait') ? this.distancePerSecond.y : 0;
@@ -270,14 +271,63 @@
         dy = (orientation == 'portrait') ? 0 : this.distancePerSecond.y;
       }
       //define distance this frame
-      const Dx = Math.round((dx * time * acceleration) * 100) / 100;
-      const Dy = Math.round((dy * time * acceleration) * 100) / 100;
+      const Dx = Math.round((dx * Time * acceleration) * 100) / 100;
+      const Dy = Math.round((dy * Time * acceleration) * 100) / 100;
+      //total distance is the distance for this frame plus the current position
       this.x = this.x + Dx;
       this.y = this.y + Dy;
+      //pull off canvas entities back on to canvas
       this.adapt(orientation);
+      //map this entity to binding quadrants
+      this.quadrantsBoundTo = this.mapToQuadrant();
+      //finally, rotate this entity
       const angle = Math.PI / 180;
       this.rotate('left', angle, false);
-      this.quadrantsBoundTo = this.mapToQuadrant();
+
+    }
+    /*
+     *@hasCollided first accumalates entities in the same spacial grid as this entity
+     *Then, loops through the identified set of entities individually, to check for superpositions
+     *of this entity and the entity in loop
+     *Returns a set of colliding entities, or, en empty set
+     */
+    hasCollided() {
+      //Loop through entities mapped to the quadrant this entity is on
+      const getSuperposedEntities = (entities) => {
+        let superposedEntities = new Set();
+        for (const entity of entities) {
+          //If this entity is superposed on the entity in this loop
+          //add the entity in this loop to a cllecting set
+          if (this.isSuperposedOn(entity)) {
+            superposedEntities.add(entity);
+          }
+        }
+        return superposedEntities;
+      };
+      //Used to reduce entities to a set of entities within the quadrant(s) this entity is mapped to
+      const reducer = (accumalate, entitiesMappedToQuadrant) => {
+        const entitiesInQuadrant = Drawing._QEM.get(entitiesMappedToQuadrant);
+        const doThisReduction = (entitiesInQuadrant.size <= 0) ? false : (() => {
+          for (const entity of entitiesInQuadrant) {
+            if (entity !== this) {
+              accumalate.add(entity);
+            }
+          }
+        })();
+        return accumalate;
+      };
+      //identify collidables
+      const entitiesInMySpacialDiv = [...this.quadrantsBoundTo].reduce(reducer, new Set());
+      //check and return superposed set of entities
+      return (entitiesInMySpacialDiv.size > 0) ? getSuperposedEntities(entitiesInMySpacialDiv) : false;
+    }
+
+    encircle(color = '#ffffff', width = 2) {
+      this.composite.twoDimContext.lineWidth = width;
+      this.composite.twoDimContext.strokeStyle = color;
+      this.composite.twoDimContext.beginPath();
+      this.composite.twoDimContext.arc(this.x + this.width / 2, this.y + this.height / 2, this.height / 2, 0, Math.PI * 2, true);
+      this.composite.twoDimContext.stroke();
     }
   }
   /*
@@ -301,6 +351,7 @@
       //set/reset dimensions
       this.width = this.bounds.maxEntityWidth;
       this.height = this.bounds.maxEntityHeight;
+      this.max = Math.max(this.height, this.width);
       //Set A Distance To Cover Per Trigger
       this.distancePerTrigger = {
         x: Math.ceil((Drawing._bounds.maxX) / (this.width)),
@@ -308,6 +359,7 @@
       };
       this.reset();
       this.manifest();
+
       return this;
     }
     reset() {
@@ -320,6 +372,7 @@
      *@manifest renders and activates the player
      */
     manifest() {
+      this.quadrantsBoundTo = this.mapToQuadrant();
       //render this player
       this.render();
       //register appropriate event listeners for depicting motion on the compositing canvas
@@ -338,12 +391,17 @@
         const dy = this.distancePerTrigger.y * -1;
         //threshold is, the current vertical postion of the player, minus the distance per trigger to cover
         const threshold = this.y + dy;
+        let animation;
         const animate = () => {
           //Only move down, if the player's current vertical position is yet to cross the threshold
           //And, if the threshold itself, is not beyond the canvas
           if (this.y > threshold && threshold >= (Drawing._bounds.minY)) {
-            window.requestAnimationFrame(animate);
+            animation = window.requestAnimationFrame(animate);
             this.interpolatedMotion(dx, dy);
+          } else {
+            window.cancelAnimationFrame(animation);
+            this.encircle();
+
           }
         };
         return window.requestAnimationFrame(animate);
@@ -355,12 +413,17 @@
         const dy = this.distancePerTrigger.y;
         //threshold is, the current vertical postion of the player, plus the distance per trigger to cover
         const threshold = this.y + dy;
+        let animation;
         const animate = () => {
           //Only move down, if the player's current vertical position is yet to cross the threshold
           //And, if the threshold itself, is not beyond the canvas
           if (this.y < threshold && threshold <= (Drawing._bounds.maxY - this.height)) {
             window.requestAnimationFrame(animate);
             this.interpolatedMotion(dx, dy);
+          } else {
+            window.cancelAnimationFrame(animation);
+            this.encircle();
+
           }
         };
         return window.requestAnimationFrame(animate);
@@ -389,6 +452,8 @@
             this.interpolatedMotion(dx, dy);
           } else {
             window.cancelAnimationFrame(animation);
+            this.encircle();
+
           }
         };
         return window.requestAnimationFrame(animate);
@@ -417,6 +482,8 @@
             this.interpolatedMotion(dx, dy);
           } else {
             window.cancelAnimationFrame(animation);
+            this.encircle();
+
           }
         };
         return window.requestAnimationFrame(animate);
@@ -424,9 +491,11 @@
       };
       const arrowRightAltHandler = () => {
         this.rotate('right');
+        this.encircle();
       };
       const arrowLeftAltHandler = () => {
         this.rotate();
+        this.encircle();
       };
       //define a map of acceptable keyboard triggers to action on that trigger
       //This helps to define a particular player motion on the compositing canvas
@@ -504,10 +573,22 @@
       const cpanelDown = document.querySelector('#ctrl-down');
       const cpanelRight = document.querySelector('#ctrl-right');
       const cpanelLeft = document.querySelector('#ctrl-left');
-      cpanelUp.addEventListener('click', arrowUpHandler);
-      cpanelDown.addEventListener('click', arrowDownHandler);
-      cpanelLeft.addEventListener('click', arrowLeftHandler);
-      cpanelRight.addEventListener('click', arrowRightHandler);
+      cpanelUp.addEventListener('click', () => {
+        arrowUpHandler();
+        this.moves++;
+      });
+      cpanelDown.addEventListener('click', () => {
+        arrowDownHandler();
+        this.moves++;
+      });
+      cpanelLeft.addEventListener('click', () => {
+        arrowLeftHandler();
+        this.moves++;
+      });
+      cpanelRight.addEventListener('click', () => {
+        arrowRightHandler();
+        this.moves++;
+      });
     }
   }
   /*
@@ -521,57 +602,139 @@
     init(avatar) {
       super.init();
       this.avatar = avatar;
+      //position the blackhole bang in the entity space center
       this.y = this.bounds.esMaxY / 2;
       this.x = this.bounds.esMaxX / 2;
       this.defineDPS();
+      //define a factor to gain width by per frame
+      //this is the width of the star. the blackhole gains 1/30th of this width per frame
+      //until it reaches maximum possible width, which may not be this particular width always.
       this.gobbleThreshold = this.bounds.maxEntityHeight * 1.5;
+      //define incerement / decrement pointers
       this.gain = 0;
       this.pan = 0;
       this.oscillation = 0;
-      this.oscillationThreshold = (this.bounds.esMaxY / 2 - this.bounds.esMinY);
+      //define a threshold for width gain
+      //the width should not exceed half the entity space, so that the blackhole is bound by the entity space
       this.gainThreshold = (this.bounds.esMaxY - this.bounds.esMinY) / 2;
+      this.quadrantsBoundTo = this.mapToQuadrant();
+      this.core = {
+        width: this.width + 10,
+        height: this.height + 10
+      };
       return this;
     }
+    encircle(color = '#ffffff', width = 2) {
+      this.composite.twoDimContext.lineWidth = width;
+      this.composite.twoDimContext.strokeStyle = color;
+      this.composite.twoDimContext.beginPath();
+      this.composite.twoDimContext.arc(this.x + this.width / 2, this.y + this.height / 2, this.height / 2, this.currentTilt, Math.PI, false);
+      this.composite.twoDimContext.stroke();
+      this.composite.twoDimContext.closePath();
+      this.composite.twoDimContext.lineWidth = 1;
+      this.composite.twoDimContext.strokeStyle = '#d0d0d0';
+      this.composite.twoDimContext.beginPath();
+      this.composite.twoDimContext.arc(this.x + this.width / 2, this.y + this.height / 2, this.core.height / 2, this.currentTilt, Math.PI * 2, false);
+      this.composite.twoDimContext.stroke();
+      this.composite.twoDimContext.closePath();
+      if (this.eventHorizon) {
+        this.composite.twoDimContext.lineWidth = 1;
+        this.composite.twoDimContext.strokeStyle = '#eee';
+        this.composite.twoDimContext.beginPath();
+        this.composite.twoDimContext.arc(this.x + this.width / 2, this.y + this.height / 2, this.eventHorizon.height / 2, this.currentTilt, Math.PI * -2, false);
+        this.composite.twoDimContext.stroke();
+        this.composite.twoDimContext.closePath();
+      }
+    }
+    /*
+     *@linearProgression overrides the default animation on an entity by super.
+     *Blackholes need to grow in size, and oscillate
+     */
     linearProgression(options) {
       const [time, acceleration, orientation] = options;
-      //blackholes need to grow in size
-      this.composite.twoDimContext.globalAlpha = 1;
-      this.width += (this.width >= this.gainThreshold) ? 0 : (this.gobbleThreshold / 30 * time);
+      //Hack(s) to deflate the browser's animation frame drops on an inactive tab
+      const Time = (time > 0.1 || time <= 0) ? 0.1 : time;
+      const factorOfTime = Time * acceleration;
+      //If the width gain hasn't passed a pre defined threshold, increment it by a factor of time
+      this.width += (this.width >= this.gainThreshold) ? 0 : (this.gobbleThreshold * Time);
+      //let the blackhole be symmetrical
       this.height = this.width;
-      const oscillation = this.oscillationThreshold * time * this.lerpFactor;
+      //if the width gained is equal or more than the threshold, oscillate
       if (this.width >= this.gainThreshold) {
+        //define the maximum Y positions the blackhole should oscillate between
         this.max = this.max || Math.max(this.height, this.width);
         this.min = this.min || Math.min(this.height, this.width);
-        this.bounds.esMinY = this.bounds.esMinY || Drawing._bounds.minY + this.max + this.bounds.maxEntityHeight + 3;
-        this.bounds.esMaxY = this.bounds.esMaxY || Drawing._bounds.maxY - this.max - this.bounds.maxEntityHeight - 3;
+        this.eventHorizon = {
+          width: this.width + this.width / 10,
+          height: this.height + this.height / 10
+        };
+        //define a threshold for oscillation. The blackhole should only oscillate between the center
+        //of the entity space, and the minimum y of the entity space
+        this.oscillationThreshold = this.oscillationThreshold || (this.bounds.esMaxY / 2 - this.max / 2);
+        //define an oscillation frequency
+        //the blackhole should oscillate, by a factor of time
+        const oscillation = this.oscillationThreshold * Time * this.lerpFactor;
+        //If the blackhole has not swung to the threshold yet, continue swinging
+        //increment counter towards the threshold
+        //swing by decrementing y
         if (this.oscillation < this.oscillationThreshold) {
           this.y -= oscillation;
           this.oscillation += oscillation;
-        } else {
+        }
+        //If the blackhole has swung to a threshold, reset the threshold
+        //swing back by increment of y
+        else {
           this.y += oscillation;
-          if (this.y >= this.bounds.esMaxY / 2) {
+          if (this.y >= (this.bounds.esMaxY / 2)) {
             this.oscillation = 0;
           }
         }
-        this.x -= (this.distancePerSecond.x) * time * acceleration;
+        //While oscillation happens, the blackhole should move horizontally too
+        //decrement x per frame by a factor of time
+        this.x -= (this.distancePerSecond.x) * factorOfTime;
+        //If out of canvas, drag back to bounds
         if (this.x <= -this.width) {
           this.x = this.bounds.esMaxX;
-          this.distancePerSecond.x += this.lerpFactor + (time * acceleration * 100) / 100;
+          //If the blackhole has oscillated the length of the canvas,
+          //everytime it does so, increment the speed by a factor of time
+          const dx = Drawing._bounds.maxX / (this.width + this.height);
+          this.distancePerSecond.x += Math.round((dx * factorOfTime) * 100) / 100;
+          //canvas span covered times ++
           this.pan++;
         }
+      } else {
+        this.encircle('orange', 10);
       }
-      const angle = Math.PI / 180;
+      //map to quadrants of the Drawing
       this.quadrantsBoundTo = this.mapToQuadrant();
+      //If the blakhole has covered the canvas length n number of times,
+      //do something else, like start consuming matter
       if (this.pan >= 1) {
-        const entities = new Set();
-        for (let quadrant of this.quadrantsBoundTo) {
-          for (const entity of quadrant) {
-            entities.add(entity);
+        const consumables = this.hasCollided();
+        if (consumables.size > 0) {
+          for (const consumable of consumables) {
+            if (consumable.constructor.name == 'Player') {
+              console.log(consumable);
+              consumable.x += 2 * this.max;
+              if (consumable.x > Drawing._bounds.maxX - consumable.width) {
+                consumable.x = Drawing._bounds.minX + consumable.width;
+              }
+              consumable.render();
+              consumable.tilt();
+            } else {
+              consumable.width -= (consumable.width / 30) * Time;
+              consumable.height -= (consumable.height / 30) * Time;
+              const dx = (consumable.width) / Drawing._bounds.maxX;
+              const sillyfactor = 4 * Math.round((dx * factorOfTime) * 100) / 100;
+              this.distancePerSecond.x += sillyfactor;
+            }
           }
         }
-        console.log(entities);
       }
+      //while all the above is happening, rotate the blackhole
+      const angle = Math.PI / 180;
       this.rotate('right', angle, false);
+      this.encircle();
     }
 
   }
@@ -587,27 +750,44 @@
     init(avatar, player) {
       super.init();
       this.avatar = avatar;
+      //Override the default random dimensions
       this.height = this.bounds.maxEntityHeight * 1.5;
+      //make the star symmetrical
       this.width = this.height;
+      //place the star at a displacement of its height from the entity space center
       this.y = this.bounds.esMaxY / 2 + this.height;
       this.x = this.bounds.esMaxX / 2;
+      //pre calculate max and min for collisions and quadrants
       this.max = Math.max(this.height, this.width);
       this.min = Math.min(this.height, this.width);
+      //redefine bounds according to the stars dimensions
       this.bounds.esMinY = this.bounds.esMinY + this.max;
       this.bounds.esMaxY = this.bounds.esMaxY - this.max;
+      this.quadrantsBoundTo = this.mapToQuadrant();
+      //define a distance to cover per second
       this.defineDPS();
+
       return this;
     }
-    linearProgression(options) {
+    /*
+     *@linearProgression overrides the default behaviour from super
+     */
+    linearProgressions(options) {
       const [time] = options;
-      this.composite.twoDimContext.globalAlpha = 1;
-      const angle = Math.PI / 180;
-      this.rotate('left', angle, false);
-      this.quadrantsBoundTo = this.mapToQuadrant();
-      this.height -= (this.height > 0) ? (this.height / 32) * time : 0;
-      this.width -= (this.height > 0) ? 0 : (this.width / 72) * time;
-      if (this.height <= 0 && this.width <= 0) {
-        this.x = -this.bounds.maxEntityWidth;
+      //Hack to deflate the browser's animation frame drops on an inactive tab
+      const Time = (time > 0.1 || time <= 0) ? 0.1 : time;
+      //The star, is consumed by the blackhole in the game
+      //SO, decrement the dimensions, by a factor of time
+      this.height -= (this.height <= 2) ? 0 : (this.height / 21) * Time;
+      this.width -= (this.height >= 2 || this.width <= 0) ? 0 : (this.width / 30) * Time;
+      //Once the star has been consumed, move it off canvas
+      if (this.height <= 2 && this.width <= 2) {
+        this.x = -Drawing._bounds.maxX;
+        this.y = this.x;
+      } else {
+
+        const angle = Math.PI / 180;
+        this.rotate('left', angle, false);
       }
     }
   }
@@ -618,6 +798,8 @@
     constructor(avatar_id) {
       super();
       this.avatar_id = avatar_id;
+      //Set a predefined ceil and floor limit for planet's dimensions
+      //else, a planet could be larger than a star
       this.maxWidth = this.bounds.maxEntityWidth * .75;
       this.minWidth = this.bounds.minEntityWidth * 1.75;
       this.minHeight = false;
@@ -625,14 +807,27 @@
     }
     init(avatar, player) {
       super.init(this.maxWidth, this.maxHeight, this.minWidth, this.minHeight);
+      //let the planet by symmetrical
       this.height = this.width;
       this.avatar = avatar;
-      this.defineDPS();
+      //pre calculate max,min for collisions and quadrants
       this.max = Math.max(this.height, this.width);
       this.min = Math.min(this.height, this.width);
+      //redefine bounds according to the stars dimensions
       this.bounds.esMinY = this.bounds.esMinY + this.max;
       this.bounds.esMaxY = this.bounds.esMaxY - this.max;
+      this.quadrantsBoundTo = this.mapToQuadrant();
+      this.defineDPS();
+
       return this;
+    }
+    linearProgression(options) {
+      if (this.width <= 2 && this.height <= 2) {
+        this.x = -Drawing._bounds.maxX;
+        this.y = this.x;
+      } else {
+        super.linearProgression(options);
+      }
     }
   }
   /*
@@ -642,6 +837,8 @@
     constructor(avatar_id) {
       super();
       this.avatar_id = avatar_id;
+      //Set a predefined ceil and floor limit for asteroid's dimensions
+      //else, an asteroid could be larger than a star
       this.maxWidth = this.bounds.maxEntityWidth * .6;
       this.minWidth = this.bounds.minEntityWidth * 1.25;
       this.minHeight = false;
@@ -651,11 +848,23 @@
       super.init(this.maxWidth, this.maxHeight, this.minWidth, this.minHeight);
       this.height = (9 / 16) * this.width;
       this.avatar = avatar;
+      //define a distance to cover per second
       this.defineDPS();
+      //precalculate max, min for collisions and quadrants
       this.max = Math.max(this.height, this.width);
       this.min = Math.min(this.height, this.width);
+      //redefine bounds according to the stars dimensions
       this.bounds.esMinY = this.bounds.esMinY + this.max;
-      this.bounds.esMaxY = this.bounds.esMaxY - this.max
+      this.bounds.esMaxY = this.bounds.esMaxY - this.max;
+      this.quadrantsBoundTo = this.mapToQuadrant();
       return this;
+    }
+    linearProgression(options) {
+      if (this.width <= 2 && this.height <= 2) {
+        this.x = -Drawing._bounds.maxX;
+        this.y = this.x;
+      } else {
+        super.linearProgression(options);
+      }
     }
   }
