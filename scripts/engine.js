@@ -29,17 +29,17 @@ class Build {
         build: Blackhole
       },
       {
-        count: 0,
+        count: 3,
         avatar: 'rock.png',
         build: Asteroid
       },
       {
-        count: 0,
+        count: 2,
         avatar: 'planet.png',
         build: Planet
       },
       {
-        count: 0,
+        count: 1,
         avatar: 'star.png',
         build: Star
       }

@@ -143,18 +143,14 @@
     isSuperposedOn(object) {
       const oradius = object.height / 2;
       const radius = this.height / 2;
-      const deltaX = Math.abs(this.x - object.x);
-      const deltaY = Math.abs(this.y - object.y);
+      const deltaX = Math.abs((this.x + this.width / 2) - (object.x + object.width / 2));
+      const deltaY = Math.abs((this.y + this.height / 2) - (object.y + object.height / 2));
       const hypotenuse = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
       const threshold = oradius + radius;
       const altRadius = this.width / 2;
       const altoradius = object.width / 2;
       const altThreshold = altRadius + altoradius;
-      if (object.constructor.name == 'Player') {
-
-      }
-      //return (hypotenuse < threshold) || (hypotenuse < altThreshold);
-      return false;
+      return (hypotenuse < threshold) || (hypotenuse < altThreshold);
     }
     /*
      *@increment increments the number of an entity on the drawing
@@ -401,9 +397,9 @@
           } else {
             window.cancelAnimationFrame(animation);
             this.encircle();
-
           }
         };
+        this.moves++;
         return window.requestAnimationFrame(animate);
       };
       const arrowDownHandler = () => {
@@ -426,6 +422,7 @@
 
           }
         };
+        if (this.moves > 0) this.moves++;
         return window.requestAnimationFrame(animate);
       };
       const arrowRightHandler = () => {
@@ -456,6 +453,7 @@
 
           }
         };
+        this.moves++;
         return window.requestAnimationFrame(animate);
       };
       const arrowLeftHandler = () => {
@@ -486,6 +484,7 @@
 
           }
         };
+        this.moves++;
         return window.requestAnimationFrame(animate);
 
       };
@@ -562,8 +561,6 @@
               MatchableAlternateTrigger = false;
               AlternateTrigger = false;
             }
-            if (normalTrigger || altTrigger)
-              this.moves++;
           });
         }
         return false;
@@ -573,22 +570,10 @@
       const cpanelDown = document.querySelector('#ctrl-down');
       const cpanelRight = document.querySelector('#ctrl-right');
       const cpanelLeft = document.querySelector('#ctrl-left');
-      cpanelUp.addEventListener('click', () => {
-        arrowUpHandler();
-        this.moves++;
-      });
-      cpanelDown.addEventListener('click', () => {
-        arrowDownHandler();
-        this.moves++;
-      });
-      cpanelLeft.addEventListener('click', () => {
-        arrowLeftHandler();
-        this.moves++;
-      });
-      cpanelRight.addEventListener('click', () => {
-        arrowRightHandler();
-        this.moves++;
-      });
+      cpanelUp.addEventListener('click', arrowUpHandler);
+      cpanelDown.addEventListener('click', arrowDownHandler);
+      cpanelLeft.addEventListener('click', arrowLeftHandler);
+      cpanelRight.addEventListener('click', arrowRightHandler);
     }
   }
   /*
@@ -714,16 +699,17 @@
         if (consumables.size > 0) {
           for (const consumable of consumables) {
             if (consumable.constructor.name == 'Player') {
-              console.log(consumable);
               consumable.x += 2 * this.max;
+              consumable.y = consumable.y - consumable.height / 2;
               if (consumable.x > Drawing._bounds.maxX - consumable.width) {
                 consumable.x = Drawing._bounds.minX + consumable.width;
               }
               consumable.render();
               consumable.tilt();
+              consumable.quadrantsBoundTo = consumable.mapToQuadrant();
             } else {
-              consumable.width -= (consumable.width / 30) * Time;
-              consumable.height -= (consumable.height / 30) * Time;
+              consumable.width -= (consumable.width / 100) * Time;
+              consumable.height -= (consumable.height / 100) * Time;
               const dx = (consumable.width) / Drawing._bounds.maxX;
               const sillyfactor = 4 * Math.round((dx * factorOfTime) * 100) / 100;
               this.distancePerSecond.x += sillyfactor;
@@ -772,14 +758,14 @@
     /*
      *@linearProgression overrides the default behaviour from super
      */
-    linearProgressions(options) {
+    linearProgression(options) {
       const [time] = options;
       //Hack to deflate the browser's animation frame drops on an inactive tab
       const Time = (time > 0.1 || time <= 0) ? 0.1 : time;
       //The star, is consumed by the blackhole in the game
       //SO, decrement the dimensions, by a factor of time
-      this.height -= (this.height <= 2) ? 0 : (this.height / 21) * Time;
-      this.width -= (this.height >= 2 || this.width <= 0) ? 0 : (this.width / 30) * Time;
+      this.height -= (this.height <= 2) ? 0 : (this.height / 2) * Time;
+      this.width -= (this.height >= 2 || this.width <= 0) ? 0 : (this.width / 10) * Time;
       //Once the star has been consumed, move it off canvas
       if (this.height <= 2 && this.width <= 2) {
         this.x = -Drawing._bounds.maxX;

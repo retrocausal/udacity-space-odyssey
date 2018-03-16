@@ -35,6 +35,7 @@ Game.prototype.init = function () {
   //Build complete, render and play
   //Render Scene
   this.renderScene();
+  this.levelWon = false;
   this.play();
   return this;
 };
@@ -44,9 +45,12 @@ Game.prototype.init = function () {
 Game.prototype.restart = function () {
   //reset player
   this.player.reset();
-  //reset entities
+  //reset game start time - this needs to be set by the initialized level of play
   this.epoch = false;
+  //reset all entities;
   this.entities = this.requestEntities();
+  //play
+  this.levelWon = false;
   this.play(true);
   return this;
 
@@ -71,6 +75,7 @@ Game.prototype.play = function (restart = false) {
   const Restart = () => {
     this.awaitMove()
       .then(hasBegun => {
+        //Begin a presaved level of play
         this.initLevel(Configurations.get(this)
           .meta.level);
       }, isStalled => {
@@ -86,66 +91,121 @@ Game.prototype.play = function (restart = false) {
   return (restart) ? Restart() : freshGame();
 }
 /*
- *
+ *@initLevel initates a level of play, and begins animations
  */
-Game.prototype.initLevel = function (level = 1) {
-  let throttle;
-  let requestNewEntities;
+Game.prototype.initLevel = function (level = {}) {
   let lastRequested;
-  let additionalEntityRequests = 0;
   let then;
-  let acceleration;
+  let currentLevel;
   const orientation = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? "landscape" : "portrait";
   const timedRequest = (now) => {
-    requestNewEntities = window.requestAnimationFrame(timedRequest);
+    let requestNewEntities = window.requestAnimationFrame(timedRequest);
     //time keeping stuff. If this is the first time post epoch new entities are requested,
     //time lag is the difference between game epoch, and now
     //else, time lag is the difference between now and the last time new entities were requested
     const time = (!lastRequested) ? (Date.now() - this.epoch) : (now - lastRequested);
     //nine seconds post game epoch, create new throttled number of entites
     if (!lastRequested && time >= 3600) {
-      this.requestEntities(throttle);
+      this.requestEntities(currentLevel.throttle);
       lastRequested = now;
     }
     //fifteen seconds into the game, create the last batch of new entities
     if (lastRequested && time > 12000) {
-      this.requestEntities(throttle);
-      if (additionalEntityRequests > 0) {
-        for (let i = 0; i < additionalEntityRequests; i++) {
-          this.requestEntities(++throttle);
+      this.requestEntities(currentLevel.throttle);
+      if (currentLevel.additionalEntityRequests > 0) {
+        for (let i = 0; i < currentLevel.additionalEntityRequests; i++) {
+          this.requestEntities(currentLevel.throttle + 1);
         }
       }
       window.cancelAnimationFrame(requestNewEntities);
     }
   };
   const animation = (now) => {
-    const loop = window.requestAnimationFrame(animation);
+    //If key parameters for motion have not been set, do not begin
+    if (!currentLevel.acceleration || !orientation)
+      return false;
+    //else, start
+    let loop;
+    loop = window.requestAnimationFrame(animation);
+    let message = "You failed to win in under three minutes";
+    //Book keeping check for all possible restart scenarios
+    const gameTime = Date.now() - this.epoch;
+    //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
+    const timeout = (gameTime > currentLevel.maxTime && !this.levelWon);
+    //Scenario #2, If the player has not made a move beyond a minute
+    let hasNotMovedForAMinute;
+    if (currentLevel.moves > 0) {
+      const deltaMoves = this.player.moves - currentLevel.moves;
+      const deltaTS = gameTime - currentLevel.lastMoveCheckTS;
+      currentLevel.lastMoveCheckTS = (deltaMoves) ? gameTime : currentLevel.lastMoveCheckTS;
+      currentLevel.moves = this.player.moves;
+      hasNotMovedForAMinute = (deltaMoves < 1 && deltaTS > 60000);
+      message = (hasNotMovedForAMinute) ? "You did not make a move in under a minute" : message;
+    } else {
+      currentLevel.moves = this.player.moves;
+    }
+    //Scenario #3, the player has used up all available lives
+    let noLivesLeft = (currentLevel.lives < 1);
+    message = (noLivesLeft) ? "You have exhausted the number of lives available" : message;
+    //If restart scenarios are true, do ot draw the frame, instead
+    //Cancel the animation and issue a restart interrupt
+    if (timeout || hasNotMovedForAMinute || noLivesLeft) {
+      window.cancelAnimationFrame(loop);
+      return this.restart();
+    }
+
+    //open a drawing frame
     Drawing.openFrame();
+    // initialize / update time interval between frames
     then = then || now;
-    const tsLastEntityMotion = 0.001 * (now - then); //in seconds
+    const frameInterval = 0.001 * (now - then); //in seconds
+    //animate all entities
     for (const entity of this.entities) {
       if (entity.hasBeenRenderedOnCreation) {
         entity.skipClearOnTilt = true;
-        entity.requestAnimationFrame('linearProgression', [tsLastEntityMotion, acceleration, orientation]);
+        entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
       }
     }
-    then = now;
+    //close the  previously opened frame of drawing
     Drawing.closeFrame();
+    //reset time
+    then = now;
   };
   //level One
   const One = () => {
-    Configurations.get(this)
-      .meta.level = 1;
     //set an epoch for timed behaviours
-    this.epoch = Date.now();
-    //define a throttle to throttle number of entities created post epoch
-    throttle = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2;
-    additionalEntityRequests = 1;
-    acceleration = 1.5;
-    window.requestAnimationFrame(timedRequest);
-    window.requestAnimationFrame(animation);
+    const epoch = Date.now();
+    Configurations.get(this)
+      .meta.level = {
+        number: 1,
+        //define a throttle to throttle number of entities created post epoch
+        throttle: (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2,
+        //define an acceleration rate for entity movements and set the number of additional entity requests
+        additionalEntityRequests: 1,
+        acceleration: 1.5,
+        won: false,
+        moves: 0,
+        maxTime: 180000,
+        lastMoveCheckTS: epoch,
+        lives: 3
+      };
+    this.epoch = epoch;
+    lastRequested = false;
+    then = false;
+    //init level for animation reference
+    currentLevel = Configurations.get(this)
+      .meta.level;
   };
+  //choose a level - fixed at one for now
   One();
+  //begin the game only if a level has been initialized
+  if (Configurations.get(this)
+    .meta.level && currentLevel && this.epoch) {
+    //schedule new batch of entities to be infused onto the composite
+    window.requestAnimationFrame(timedRequest);
+    //animate game entities,check game states
+    window.requestAnimationFrame(animation);
+  }
   return this;
 };
 /*
