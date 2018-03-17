@@ -63,7 +63,7 @@ Game.prototype.play = function (restart = false) {
     //ask feedback if this is the first game
     this.presentPlayerOptions()
       .then(hasBegun => {
-        this.initLevel(1);
+        this.initLevel();
       }, isStalled => {
         //If the game hasn't begun, reload
         window.location.reload(true);
@@ -93,7 +93,7 @@ Game.prototype.play = function (restart = false) {
 /*
  *@initLevel initates a level of play, and begins animations
  */
-Game.prototype.initLevel = function (level = {}) {
+Game.prototype.initLevel = function (level) {
   let lastRequested;
   let then;
   let currentLevel;
@@ -147,13 +147,6 @@ Game.prototype.initLevel = function (level = {}) {
     //Scenario #3, the player has used up all available lives
     let noLivesLeft = (currentLevel.lives < 1);
     message = (noLivesLeft) ? "You have exhausted the number of lives available" : message;
-    //If restart scenarios are true, do ot draw the frame, instead
-    //Cancel the animation and issue a restart interrupt
-    if (timeout || hasNotMovedForAMinute || noLivesLeft) {
-      window.cancelAnimationFrame(loop);
-      return this.restart();
-    }
-
     //open a drawing frame
     Drawing.openFrame();
     // initialize / update time interval between frames
@@ -168,36 +161,48 @@ Game.prototype.initLevel = function (level = {}) {
     }
     //close the  previously opened frame of drawing
     Drawing.closeFrame();
+    //Do collision Checks
+    const hasCollided = this.player.hasCollided();
+    currentLevel.lives -= (hasCollided) ? 1 : 0;
     //reset time
     then = now;
   };
   //level One
-  const One = () => {
+  const One = (preservedLevel) => {
     //set an epoch for timed behaviours
     const epoch = Date.now();
+    const freshLevel = {
+      number: 1,
+      //define a throttle to throttle number of entities created post epoch
+      throttle: (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2,
+      //define an acceleration rate for entity movements and set the number of additional entity requests
+      additionalEntityRequests: 1,
+      acceleration: 1.5,
+      won: false,
+      moves: 0,
+      maxTime: 180000,
+      lastMoveCheckTS: epoch,
+      lives: 3
+    };
+    //init level for animation reference
+    currentLevel = preservedLevel || freshLevel;
+    currentLevel.lastMoveCheckTS = epoch;
     Configurations.get(this)
-      .meta.level = {
-        number: 1,
-        //define a throttle to throttle number of entities created post epoch
-        throttle: (Drawing._bounds.maxX > Drawing._bounds.maxY) ? 1 : 2,
-        //define an acceleration rate for entity movements and set the number of additional entity requests
-        additionalEntityRequests: 1,
-        acceleration: 1.5,
-        won: false,
-        moves: 0,
-        maxTime: 180000,
-        lastMoveCheckTS: epoch,
-        lives: 3
-      };
+      .meta.level = currentLevel;
     this.epoch = epoch;
     lastRequested = false;
     then = false;
-    //init level for animation reference
-    currentLevel = Configurations.get(this)
-      .meta.level;
   };
   //choose a level - fixed at one for now
-  One();
+  const onLevel = (level) ? level.number : 1;
+  switch (onLevel) {
+  case 1:
+    One(level);
+    break;
+  default:
+    break;
+
+  }
   //begin the game only if a level has been initialized
   if (Configurations.get(this)
     .meta.level && currentLevel && this.epoch) {

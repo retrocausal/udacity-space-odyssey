@@ -315,7 +315,7 @@
       //identify collidables
       const entitiesInMySpacialDiv = [...this.quadrantsBoundTo].reduce(reducer, new Set());
       //check and return superposed set of entities
-      return (entitiesInMySpacialDiv.size > 0) ? getSuperposedEntities(entitiesInMySpacialDiv) : false;
+      return (entitiesInMySpacialDiv.size > 0) ? getSuperposedEntities(entitiesInMySpacialDiv) : new Set();
     }
 
     encircle(color = '#ffffff', width = 2) {
@@ -355,14 +355,16 @@
       };
       this.reset();
       this.manifest();
+      //register appropriate event listeners for depicting motion on the compositing canvas
+      this.registerInterruptHandlers();
 
       return this;
     }
-    reset() {
+    reset(preserveMoves) {
       //override pre defined initial positions, and place this player, bang at the center of the bottom most layer
       this.x = (Drawing._bounds.maxX) / 2;
       this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
-      this.moves = 0;
+      this.moves = (preserveMoves) ? this.moves : 0;
     }
     /*
      *@manifest renders and activates the player
@@ -371,8 +373,23 @@
       this.quadrantsBoundTo = this.mapToQuadrant();
       //render this player
       this.render();
-      //register appropriate event listeners for depicting motion on the compositing canvas
-      this.registerInterruptHandlers();
+    }
+    /*
+     *@hasCollided extends the super's hasCollided behaviour, with some exceptions
+     */
+    hasCollided() {
+      const outOfCollidableSpace = (this.y >= this.bounds.esMaxY);
+      const entitiesCollidedWith = super.hasCollided();
+      const noCollision = (entitiesCollidedWith.size < 1);
+      const blackholeCollision = (entitiesCollidedWith.size == 1) && (entitiesCollidedWith[Symbol.iterator]()
+        .next()
+        .value.constructor.name == 'Blackhole');
+      if (outOfCollidableSpace || noCollision || blackholeCollision) {
+        return false;
+      }
+      this.reset(true);
+      this.manifest();
+      return true;
     }
     /*
      *@registerInterruptHandlers registers a set of acceptable motion triggers
@@ -396,7 +413,6 @@
             this.interpolatedMotion(dx, dy);
           } else {
             window.cancelAnimationFrame(animation);
-            this.encircle();
           }
         };
         this.moves++;
@@ -418,11 +434,10 @@
             this.interpolatedMotion(dx, dy);
           } else {
             window.cancelAnimationFrame(animation);
-            this.encircle();
 
           }
         };
-        if (this.moves > 0) this.moves++;
+        if (this.moves > 0 && this.y < Drawing._bounds.maxY - this.bounds.maxEntityHeight) this.moves++;
         return window.requestAnimationFrame(animate);
       };
       const arrowRightHandler = () => {
@@ -449,7 +464,6 @@
             this.interpolatedMotion(dx, dy);
           } else {
             window.cancelAnimationFrame(animation);
-            this.encircle();
 
           }
         };
@@ -480,7 +494,6 @@
             this.interpolatedMotion(dx, dy);
           } else {
             window.cancelAnimationFrame(animation);
-            this.encircle();
 
           }
         };
@@ -490,11 +503,9 @@
       };
       const arrowRightAltHandler = () => {
         this.rotate('right');
-        this.encircle();
       };
       const arrowLeftAltHandler = () => {
         this.rotate();
-        this.encircle();
       };
       //define a map of acceptable keyboard triggers to action on that trigger
       //This helps to define a particular player motion on the compositing canvas
@@ -702,14 +713,18 @@
               consumable.x += 2 * this.max;
               consumable.y = consumable.y - consumable.height / 2;
               if (consumable.x > Drawing._bounds.maxX - consumable.width) {
-                consumable.x = Drawing._bounds.minX + consumable.width;
+                consumable.x = Drawing._bounds.minX + 1;
               }
               consumable.render();
               consumable.tilt();
               consumable.quadrantsBoundTo = consumable.mapToQuadrant();
+              consumable.affectedByBlackhole++;
             } else {
               consumable.width -= (consumable.width / 100) * Time;
               consumable.height -= (consumable.height / 100) * Time;
+              consumable.x += this.max;
+              consumable.adapt();
+              consumable.rotate('right', this.currentTilt, false);
               const dx = (consumable.width) / Drawing._bounds.maxX;
               const sillyfactor = 4 * Math.round((dx * factorOfTime) * 100) / 100;
               this.distancePerSecond.x += sillyfactor;
