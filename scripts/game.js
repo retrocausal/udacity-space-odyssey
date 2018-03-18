@@ -42,10 +42,13 @@ Game.prototype.init = function () {
 /*
  *@restart restarts the game
  */
-Game.prototype.restart = function (options) {
+Game.prototype.restart = function (options = {
+  hardReload: false,
+  preserveMoves: true
+}) {
   let {
-    hardReload = false,
-      preserveMoves = false
+    hardReload,
+    preserveMoves
   } = options;
   if (hardReload) {
     return window.location.reload(true);
@@ -143,8 +146,9 @@ Game.prototype.initLevel = function (level) {
     //Book keeping check for all possible restart scenarios
     const moment = Date.now();
     const gameTime = moment - this.epoch;
+    this.updateClock(gameTime);
     //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
-    const timeout = (gameTime > currentLevel.maxTime && !currentLevel.conquered);
+    const timeout = (gameTime > currentLevel.maxTime && !currentLevel.objectiveAchievedBy(this.player));
     //Scenario #2, If the player has not made a move beyond a minute
     let hasNotMovedForAMinute;
     if (!currentLevel.moves) {
@@ -161,7 +165,7 @@ Game.prototype.initLevel = function (level) {
     //Scenario #3, the player has used up all available lives
     let noLivesLeft = (currentLevel.lives < 1);
     message = (noLivesLeft) ? "You have exhausted the number of lives available" : message;
-    //If restart scenarios are true, do ot draw the frame, instead
+    //If restart scenarios are true, do not draw the frame, instead
     //Cancel the animation and issue a restart interrupt
     if (timeout || hasNotMovedForAMinute || noLivesLeft) {
       currentLevel.cancelPlay();
@@ -191,30 +195,34 @@ Game.prototype.initLevel = function (level) {
       //present options
       return this.presentOption(notification, callBackOptions);
     } else
-      //Do check for collisions
-      if (this.player.hasCollided()) {
-        currentLevel.cancelPlay();
-        currentLevel.lives--;
-        return this.doNotListenToPlayer()
-          .then(isDeaf => {
-            return this.restart();
-          })
-          .catch(isNotDeaf => {
-            console.warn(isNotDeaf);
-          });
-      } else {
-        //open a drawing frame
-        Drawing.openFrame();
-        //animate all entities
-        for (const entity of this.entities) {
-          if (entity.hasBeenRenderedOnCreation) {
-            entity.skipClearOnTilt = true;
-            entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
+      //has the player conquered space on this level?
+      if (currentLevel.objectiveAchievedBy(this.player)) {
+        //show stats
+      } else
+        //Do check for collisions
+        if (this.player.hasCollided()) {
+          currentLevel.cancelPlay();
+          currentLevel.lives--;
+          return this.awaitPlayerHalt()
+            .then(hasHalted => {
+              return this.restart();
+            })
+            .catch(hasNotHalted => {
+              console.warn(hasNotHalted);
+            });
+        } else {
+          //open a drawing frame
+          Drawing.openFrame();
+          //animate all entities
+          for (const entity of this.entities) {
+            if (entity.hasBeenRenderedOnCreation) {
+              entity.skipClearOnTilt = true;
+              entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
+            }
           }
+          //close the  previously opened frame of drawing
+          Drawing.closeFrame();
         }
-        //close the  previously opened frame of drawing
-        Drawing.closeFrame();
-      }
     //reset time
     then = now;
     return false;
@@ -230,7 +238,9 @@ Game.prototype.initLevel = function (level) {
       //define an acceleration rate for entity movements and set the number of additional entity requests
       additionalEntityRequests: 1,
       acceleration: 1.5,
-      won: false,
+      objectiveAchievedBy: function (player) {
+        return player.hasFetched && player.hasReturned
+      },
       moves: 0,
       maxTime: 180000,
       lastMoveCheckTS: epoch,
@@ -281,7 +291,7 @@ Game.prototype.initLevel = function (level) {
 /*
  *
  */
-Game.prototype.doNotListenToPlayer = function () {
+Game.prototype.awaitPlayerHalt = function () {
   return new Promise((resolve, reject) => {
     let willNotMove;
     const poll = () => {
@@ -294,6 +304,10 @@ Game.prototype.doNotListenToPlayer = function () {
     const polly = window.setInterval(poll, 3);
   });
 };
+/*
+ *@updateClock updates the on screen time
+ */
+Game.prototype.updateClock = function () {};
 /*
  *@requestEntities requests the game engine, to build, assemble individual non player
  *Entities

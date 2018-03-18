@@ -1,58 +1,79 @@
 @media Screen and (min-width:761px) {
-	main {
-		min-width: 81vw;
-		width: 81vw;
-		min-height: calc((9/16)*81vw);
-		height: calc((9/16)*81vw);
-	}
-	.panel {
-		width: 81vw;
-	}
-	.responsive-container {
-		width: calc(81vw/3);
-	}
-	.responsive {
-		height: calc((9/16)*(81vw/3));
-	}
-	.controls {
-		width: auto;
-	}
+  main {
+    min-width: 81vw;
+    width: 81vw;
+    min-height: calc((9/16)*81vw);
+    height: calc((9/16)*81vw);
+  }
+  .panel {
+    width: 81vw;
+  }
+  .responsive-container {
+    width: calc(81vw/3);
+  }
+  .responsive {
+    height: calc((9/16)*(81vw/3));
+  }
+  .help, .meta {
+    width: 35%;
+  }
+  .player-controls {
+    width: 30%;
+  }
+  .help {
+    order: 0;
+  }
+  .player-controls {
+    order: 1;
+  }
+  .meta {
+    order: 2;
+  }
+  .controls {
+    width: auto;
+  }
 }
 
 @media Screen and (min-width:996px) {
-	main {
-		min-width: 69vw;
-		width: 69vw;
-		min-height: calc((9/16)*69vw);
-		height: calc((9/16)*69vw);
-	}
-	.panel {
-		min-width: 69vw;
-		width: 69vw;
-	}
-	.responsive-container {
-		width: calc(69vw/3);
-	}
-	.responsive {
-		height: calc((9/16)*(69vw/3));
-	}
+  main {
+    min-width: 69vw;
+    width: 69vw;
+    min-height: calc((9/16)*69vw);
+    height: calc((9/16)*69vw);
+  }
+  .panel {
+    min-width: 69vw;
+    width: 69vw;
+  }
+  .responsive-container {
+    width: calc(69vw/3);
+  }
+  .responsive {
+    height: calc((9/16)*(69vw/3));
+  }
+  .help, .meta {
+    width: 39%;
+  }
+  .player-controls {
+    width: 22%;
+  }
 }
 
 @media Screen and (min-width:1280px) {
-	main {
-		min-width: 60vw;
-		width: 60vw;
-		min-height: calc((9/16)*60vw);
-		height: calc((9/16)*60vw);
-	}
-	.panel {
-		min-width: 60vw;
-		width: 60vw;
-	}
-	.responsive-container {
-		width: calc(60vw/3);
-	}
-	.responsive {
-		height: calc((9/16)*(60vw/3));
-	}
+  main {
+    min-width: 60vw;
+    width: 60vw;
+    min-height: calc((9/16)*60vw);
+    height: calc((9/16)*60vw);
+  }
+  .panel {
+    min-width: 60vw;
+    width: 60vw;
+  }
+  .responsive-container {
+    width: calc(60vw/3);
+  }
+  .responsive {
+    height: calc((9/16)*(60vw/3));
+  }
 }

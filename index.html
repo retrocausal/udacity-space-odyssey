@@ -1,66 +1,116 @@
 <!DOCTYPE html>
 <html>
 
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width,initial-scale=1.0">
-		<link rel="icon" type="image/png" href="favicon.png">
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://use.fontawesome.com">
-		<link rel="prefetch" href="https://fonts.googleapis.com/css?family=Montserrat:700,400%7CCinzel+Decorative%7CLibre+Barcode+39+Extended%7CQuicksand:700%7CRaleway:500" crossorigin="anonymous">
-		<link href="https://fonts.googleapis.com/css?family=Montserrat:700,400%7CCinzel+Decorative%7CLibre+Barcode+39+Extended%7CQuicksand:400,700%7CRaleway:500" rel="stylesheet">
-		<link rel="stylesheet" href="styles/main.css">
-		<link rel="stylesheet" href="styles/screen.css">
-		<title>Space Odyssey</title>
-	</head>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://use.fontawesome.com">
+    <link rel="prefetch" href="https://fonts.googleapis.com/css?family=Montserrat:700,400%7CCinzel+Decorative%7CLibre+Barcode+39+Extended%7CQuicksand:700%7CRaleway:500" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400%7CCinzel+Decorative%7CLibre+Barcode+39+Extended%7CQuicksand:400,700%7CRaleway:500" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/screen.css">
+    <title>Space Odyssey</title>
+  </head>
 
-	<body>
-		<header>
-			<!-- <section class="banner">
+  <body>
+    <header>
+      <!-- <section class="banner">
 				<h1 class="banner-header">Space Odyssey</h1>
 			</section> -->
-		</header>
-		<main>
-			<section class="options">
-				<h2 class='option-header'></h2>
-			</section>
-		</main>
-		<aside class="panel">
-			<section class="player-controls">
-				<div class="controls">
-					<div class="ctrl-up">
-						<img id="ctrl-up" class="ctrl-image" src="./assets/rasters/up.png" alt="move up">
-					</div>
-					<div class="ctrl-multiple">
-						<div class="ctrl-left">
-							<img id="ctrl-left" class="ctrl-image" src="./assets/rasters/left.png" alt="move left">
-						</div>
-						<div class="ctrl-start">
-							<img id="shoot" class="ctrl-image" src="./assets/rasters/round.png" alt="shoot something">
-						</div>
-						<div class="ctrl-right">
-							<img id="ctrl-right" class="ctrl-image" src="./assets/rasters/right.png" alt="move right">
-						</div>
-					</div>
-					<div class="ctrl-down">
-						<img id="ctrl-down" class="ctrl-image" src="./assets/rasters/down.png" alt="move down">
-					</div>
-				</div>
-
-				<div class="panel-head">
-					<h2>Game Controls</h2>
-				</div>
-			</section>
-		</aside>
-		<footer>
-			<script src="./bower_components/jquery/dist/jquery.min.js"></script>
-			<script defer="defer" src="./scripts/jquery-ui.min.js"></script>
-			<script src="./scripts/cache.js"></script>
-			<script src="./scripts/drawings.js"></script>
-			<script src="./scripts/entities.js"></script>
-			<script src="./scripts/game.js"></script>
-			<script src="./scripts/engine.js"></script>
-		</footer>
-	</body>
+    </header>
+    <main>
+      <section class="options">
+        <h2 class='option-header'></h2>
+      </section>
+    </main>
+    <aside class="panel">
+      <section class="player-controls">
+        <div class="controls">
+          <div class="ctrl-up">
+            <img id="ctrl-up" class="ctrl-image" src="./assets/rasters/up.png" alt="move up">
+          </div>
+          <div class="ctrl-multiple">
+            <div class="ctrl-left">
+              <img id="ctrl-left" class="ctrl-image" src="./assets/rasters/left.png" alt="move left">
+            </div>
+            <div class="ctrl-start">
+              <img id="shoot" class="ctrl-image" src="./assets/rasters/round.png" alt="shoot something">
+            </div>
+            <div class="ctrl-right">
+              <img id="ctrl-right" class="ctrl-image" src="./assets/rasters/right.png" alt="move right">
+            </div>
+          </div>
+          <div class="ctrl-down">
+            <img id="ctrl-down" class="ctrl-image" src="./assets/rasters/down.png" alt="move down">
+          </div>
+        </div>
+        <div class="panel-head">
+          <h3 class="player-control-header">Game Controls</h3>
+        </div>
+      </section>
+      <section class="meta">
+        <h2 class="meta-header">State</h2>
+        <div class="meta-timer">
+          <h3 class="timer">Time</h3>
+        </div>
+      </section>
+      <article class="help">
+        <section class="panel-help">
+          <div class="controls-help">
+            <h2 class="control-help-header">Controls Help</h2>
+            <ul class="control-help-list">
+              <li class="control-help-list-item">
+                Moving Up:
+              </li>
+              <li class="control-help-list-item">
+                Arrow Up
+              </li>
+              <li class="control-help-list-item">
+                Moving Down:
+              </li>
+              <li class="control-help-list-item">
+                Arrow Down
+              </li>
+              <li class="control-help-list-item">
+                Moving Right:
+              </li>
+              <li class="control-help-list-item">
+                Arrow Right
+              </li>
+              <li class="control-help-list-item">
+                Moving Left:
+              </li>
+              <li class="control-help-list-item">
+                Arrow left
+              </li>
+              <li class="control-help-list-item">
+                Rotation left:
+              </li>
+              <li class="control-help-list-item">
+                Alt + Arrow Left / Double Click Left
+              </li>
+              <li class="control-help-list-item">
+                Rotation right:
+              </li>
+              <li class="control-help-list-item">
+                Alt + Arrow Right / Double Click Right
+              </li>
+            </ul>
+          </div>
+        </section>
+      </article>
+    </aside>
+    <footer>
+      <script src="./bower_components/jquery/dist/jquery.min.js"></script>
+      <script defer="defer" src="./scripts/jquery-ui.min.js"></script>
+      <script src="./scripts/cache.js"></script>
+      <script src="./scripts/drawings.js"></script>
+      <script src="./scripts/entities.js"></script>
+      <script src="./scripts/game.js"></script>
+      <script src="./scripts/engine.js"></script>
+    </footer>
+  </body>
 
 </html>

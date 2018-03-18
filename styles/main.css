@@ -133,38 +133,62 @@ main {
   display: flex;
   justify-content: center;
   width: 100%;
-  align-items: center;
-  margin: 1vmax auto;
+  margin: 0 auto;
+  flex-wrap: wrap;
 }
 
 .player-controls {
+  width: 50%;
+  margin: 1vmax auto;
+  padding: 0;
+}
+
+.meta {
+  width: 50%;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 0;
+  margin: 1vmax auto;
+  height: auto;
+}
+
+.meta-header {
+  font-family: 'Quicksand', sans-serif;
   width: 100%;
-  justify-content: center;
+}
+
+.meta-timer {
+  width: 100%;
 }
 
 .panel-head {
   width: 100%;
   text-align: center;
-  margin: 2vmax 0;
+  margin: 1vmax 0;
+}
+
+.player-control-header {
+  font-family: 'Quicksand', sans-serif;
 }
 
 .controls {
   display: flex;
-  width: 50%;
+  width: 100%;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-around;
+  height: auto;
 }
 
 .ctrl-up, .ctrl-down {
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-around;
 }
 
 .ctrl-multiple {
-  width: 72%;
+  width: 100%;
   display: flex;
   justify-content: space-between;
 }
@@ -177,13 +201,60 @@ main {
   min-width: 48px;
   width: 48px;
   max-width: 100%;
-  min-height: 48px;
-  height: 48px;
+  max-height: 48px;
+  height: auto;
 }
 
 #ctrl-up, #ctrl-down, #ctrl-right, #ctrl-left {
   cursor: pointer;
   z-index: 10;
+}
+
+.help {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  height: auto;
+  margin: 1vmax auto;
+}
+
+.panel-help {
+  width: 100%;
+}
+
+.controls-help {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.control-help-header {
+  width: 100%;
+  font-family: 'Quicksand', sans-serif;
+  text-decoration: underline;
+}
+
+.control-help-list {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+}
+
+.control-help-list-item {
+  width: 50%;
+  font-family: 'Quicksand', sans-serif;
+  margin: 1vmin 0;
+  font-weight: bold;
+  text-align: right;
+  padding: 0 1vmin;
+}
+
+.control-help-list-item:nth-of-type(2n) {
+  text-align: left;
 }
 
 figure, picture {
