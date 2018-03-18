@@ -42,7 +42,11 @@ Game.prototype.init = function () {
 /*
  *@restart restarts the game
  */
-Game.prototype.restart = function (hardReload) {
+Game.prototype.restart = function (options) {
+  let {
+    hardReload = false,
+      preserveMoves = false
+  } = options;
   if (hardReload) {
     return window.location.reload(true);
   }
@@ -51,7 +55,7 @@ Game.prototype.restart = function (hardReload) {
   //reset all entities;
   this.entities = this.requestEntities();
   //reset player
-  this.player.reset(true);
+  this.player.reset(preserveMoves);
   //play
   this.play(true);
   return this;
@@ -76,6 +80,17 @@ Game.prototype.play = function (restart = false) {
   };
   const Restart = () => {
     this.player.manifest();
+    this.awaitMove(this.player.moves)
+      .then(hasBegun => {
+        this.initLevel(Configurations.get(this)
+          .meta.level);
+      }, isStalled => {
+        //If the game hasn't begun, reload
+        window.location.reload(true);
+      })
+      .catch(exception => {
+        console.warn(exception);
+      });
   };
   return (restart) ? Restart() : freshGame();
 }
@@ -83,23 +98,27 @@ Game.prototype.play = function (restart = false) {
  *@initLevel initates a level of play, and begins animations
  */
 Game.prototype.initLevel = function (level) {
-  let lastRequested;
-  let then;
+  //state holders for new batched infusion of entitites
+  let needNewEntities, then, requestNewEntities;
+  //current level of play
   let currentLevel;
   const orientation = (Drawing._bounds.maxX > Drawing._bounds.maxY) ? "landscape" : "portrait";
   const timedRequest = (now) => {
-    let requestNewEntities = window.requestAnimationFrame(timedRequest);
+    if (!currentLevel)
+      return false;
+    requestNewEntities = window.requestAnimationFrame(timedRequest);
+    currentLevel.animations.add(requestNewEntities);
     //time keeping stuff. If this is the first time post epoch new entities are requested,
     //time lag is the difference between game epoch, and now
     //else, time lag is the difference between now and the last time new entities were requested
-    const time = (!lastRequested) ? (Date.now() - this.epoch) : (now - lastRequested);
-    //nine seconds post game epoch, create new throttled number of entites
-    if (!lastRequested && time >= 3600) {
+    const time = (!needNewEntities) ? (Date.now() - this.epoch) : (now - needNewEntities);
+    //three point 6 seconds post game epoch, create new throttled number of entites
+    if (!needNewEntities && time >= 3600) {
       this.requestEntities(currentLevel.throttle);
-      lastRequested = now;
+      needNewEntities = now;
     }
     //ten seconds into the game, create the last batch of new entities
-    if (lastRequested && time > 6000) {
+    if (needNewEntities && time > 6000) {
       this.requestEntities(currentLevel.throttle);
       if (currentLevel.additionalEntityRequests > 0) {
         for (let i = 0; i < currentLevel.additionalEntityRequests; i++) {
@@ -116,6 +135,7 @@ Game.prototype.initLevel = function (level) {
     //else, start
     let loop;
     loop = window.requestAnimationFrame(animation);
+    currentLevel.animations.add(loop);
     // initialize / update time interval between frames
     then = then || now;
     const frameInterval = 0.001 * (now - then); //in seconds
@@ -124,7 +144,7 @@ Game.prototype.initLevel = function (level) {
     const moment = Date.now();
     const gameTime = moment - this.epoch;
     //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
-    const timeout = (gameTime > currentLevel.maxTime && !this.levelWon);
+    const timeout = (gameTime > currentLevel.maxTime && !currentLevel.conquered);
     //Scenario #2, If the player has not made a move beyond a minute
     let hasNotMovedForAMinute;
     if (!currentLevel.moves) {
@@ -144,11 +164,15 @@ Game.prototype.initLevel = function (level) {
     //If restart scenarios are true, do ot draw the frame, instead
     //Cancel the animation and issue a restart interrupt
     if (timeout || hasNotMovedForAMinute || noLivesLeft) {
-      window.cancelAnimationFrame(loop);
+      currentLevel.cancelPlay();
       //compose a message note
       const notification = Engine.createNote(message);
       //identify a target DOM element within the markup on which, an event occurs
       const callBackTarget = `#restart-game`;
+      const options = {
+        hardReload: (!noLivesLeft) ? false : true,
+        preserveMoves: (hasNotMovedForAMinute) ? true : false
+      };
       //Construct a helper object for when user provides input
       const callBackOptions = {
         //params define the context to work on after a call back on the event is triggered
@@ -157,7 +181,7 @@ Game.prototype.initLevel = function (level) {
           context: {
             task: 'restart'
           },
-          input: (!noLivesLeft) ? false : true
+          input: options
         },
         //the target DOM child of the above markup generated, on which an event occurs
         target: callBackTarget,
@@ -165,15 +189,15 @@ Game.prototype.initLevel = function (level) {
         listenTo: 'click'
       };
       //present options
-      //return this.presentOption(notification, callBackOptions);
+      return this.presentOption(notification, callBackOptions);
     } else
       //Do check for collisions
       if (this.player.hasCollided()) {
-        window.cancelAnimationFrame(loop);
+        currentLevel.cancelPlay();
         currentLevel.lives--;
-        this.doNotListenToPlayer()
+        return this.doNotListenToPlayer()
           .then(isDeaf => {
-            this.restart();
+            return this.restart();
           })
           .catch(isNotDeaf => {
             console.warn(isNotDeaf);
@@ -210,15 +234,27 @@ Game.prototype.initLevel = function (level) {
       moves: 0,
       maxTime: 180000,
       lastMoveCheckTS: epoch,
-      lives: 3
+      lives: 3,
+      animations: new Set(),
+      cancelPlay: function () {
+        for (const animation of this.animations) {
+          window.cancelAnimationFrame(animation);
+        }
+        return false;
+      }
     };
     //init level for animation reference
     currentLevel = preservedLevel || freshLevel;
+    //reset level's timestamps and animation pointers
     currentLevel.lastMoveCheckTS = epoch;
+    currentLevel.animations = new Set();
+    //assert level of play - required in restart scenarios because of collisions
     Configurations.get(this)
       .meta.level = currentLevel;
+    //init time
     this.epoch = epoch;
-    lastRequested = false;
+    //reset animation time references
+    needNewEntities = false;
     then = false;
   };
   //choose a level - fixed at one for now
@@ -402,6 +438,8 @@ Game.prototype.presentPlayerOptions = function () {
           };
           //present options
           this.presentOption(responsiveMarkup, callBackOptions);
+          $('.option-header')
+            .html('Select A Vehicle');
         };
         if (asset) proceed();
         return asset;
@@ -414,24 +452,27 @@ Game.prototype.presentPlayerOptions = function () {
 /*
  *@awaitMove awaits the user to use a desired trigger on the keyboard, to move the player onto the action scene
  */
-Game.prototype.awaitMove = function () {
+Game.prototype.awaitMove = function (moves) {
   return new Promise((hasBegun, reload) => {
     let animation;
     let then = 0;
     const wait = (now) => {
-      //If the user has not begun the game yet, wait for a maximum of three minutes
-      if (!this.player.moves || this.player.moves <= 0) {
-        animation = window.requestAnimationFrame(wait);
-        then = then || now;
-        let dt = now - then;
+      animation = window.requestAnimationFrame(wait);
+      then = then || now;
+      let dt = now - then;
+      //If the user has not begun the game yet, wait for a maximum of three minutes and this is a fresh level
+      const hasNotMoved = (!moves && (!this.player.moves || this.player.moves <= 0));
+      //If the user has not moved on a restart
+      const hasNotMovedAfterRestart = (moves && (!this.player.moves || (this.player.moves - moves < 1)));
+      if (hasNotMoved || hasNotMovedAfterRestart) {
         //If the game has not been begun by three minutes, reload the page
         if (dt > 180000) {
           reload();
         }
       } else {
+        window.cancelAnimationFrame(animation);
         //If the uaser has begun the game, resolve this promise
         hasBegun(true);
-        window.cancelAnimationFrame(animation);
       }
     };
     window.requestAnimationFrame(wait);
@@ -449,6 +490,9 @@ Game.prototype.presentOption = function (markup, callBack) {
       .find(callBack.target.animateOnCallback || '.animate')
       .toggle('slide', 'fast')
       .remove();
+    $('.option-header')
+      .empty()
+      .html('');
     $('.options')
       .hide(1000)
       .empty();
@@ -464,6 +508,7 @@ Game.prototype.presentOption = function (markup, callBack) {
     })
     //finish laying out options
     .append(markup)
+    .show(1000)
     //assign a click event listener
     .find(callBack.target)
     .css({

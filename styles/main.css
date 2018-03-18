@@ -68,6 +68,9 @@ main {
   width: 100%;
   z-index: 2;
   margin: 48px 0;
+  font-size: xx-large;
+  font-family: 'Quicksand', sans-serif;
+  font-variant: small-caps;
 }
 
 .responsive {
@@ -95,20 +98,35 @@ main {
 .notification-header {
   width: 100%;
   text-align: center;
+  font-size: xx-large;
+  font-family: 'Quicksand', sans-serif;
+  font-variant: small-caps;
 }
 
 .notification-msg {
   width: 100%;
+  font-size: larger;
+  font-family: 'Quicksand', sans-serif;
+  font-variant: small-caps;
+  font-weight: bold;
+  color: #111;
+  margin: 24px 0;
 }
 
 .notification-options {
   width: 100%;
   display: flex;
   justify-content: center;
+  margin: 24px 0;
 }
 
 .notification-button {
   width: auto;
+  height: 48px;
+  font-size: large;
+  font-family: 'Quicksand', sans-serif;
+  font-variant: small-caps;
+  font-weight: bolder;
 }
 
 .panel {

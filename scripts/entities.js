@@ -16,15 +16,15 @@ class Entity {
   }
   init(...options) {
     let [maxW, maxH, minW, minH] = options;
-[this.width, this.height] = this.size(maxW, maxH, minW, minH);
     this.lerpFactor = 0.25;
+    [this.width, this.height] = this.size(maxW, maxH, minW, minH);
     //Define an angle of rotation per frame
     this.radians = 15 * (Math.PI / 180);
     //initialize a current tilt angle
     //rotation per rotation call will be the sum total of this.radians and this.currentTilt
     this.currentTilt = 0;
     //randomly position this entity
-[this.x, this.y] = this.position();
+    [this.x, this.y] = this.position();
     return this;
   }
   defineDPS() {
@@ -443,7 +443,7 @@ class Player extends Entity {
         animation = window.requestAnimationFrame(animate);
         //Only move down, if the player's current vertical position is yet to cross the threshold
         //And, if the threshold itself, is not beyond the canvas
-        if (this.y >= threshold || threshold >= (Drawing._bounds.maxY - this.height)) {
+        if (this.y >= threshold || threshold > (Drawing._bounds.maxY - this.height)) {
           window.cancelAnimationFrame(animation);
           this.movingDown = false;
         } else {

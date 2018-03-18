@@ -124,7 +124,7 @@ class Build {
                               <p>${string}</p>
                             </div>
                             <div class=notification-options>
-                              <button id=restart-game>Replay</button>
+                              <button class=notification-button id=restart-game>Replay</button>
                             </div>
                             </section>
                           </article>`;
