@@ -42,15 +42,17 @@ Game.prototype.init = function () {
 /*
  *@restart restarts the game
  */
-Game.prototype.restart = function () {
-  //reset player
-  this.player.reset();
+Game.prototype.restart = function (hardReload) {
+  if (hardReload) {
+    return window.location.reload(true);
+  }
   //reset game start time - this needs to be set by the initialized level of play
   this.epoch = false;
   //reset all entities;
   this.entities = this.requestEntities();
+  //reset player
+  this.player.reset(true);
   //play
-  this.levelWon = false;
   this.play(true);
   return this;
 
@@ -73,20 +75,7 @@ Game.prototype.play = function (restart = false) {
       });
   };
   const Restart = () => {
-    this.awaitMove()
-      .then(hasBegun => {
-        //Begin a presaved level of play
-        this.initLevel(Configurations.get(this)
-          .meta.level);
-      }, isStalled => {
-        //If the game hasn't begun after three minutes, reload
-        //Since this is a restart, the game essentially resets hard
-        //And the user will need to begin all over again
-        window.location.reload(true);
-      })
-      .catch(exception => {
-        console.warn(exception);
-      });
+    this.player.manifest();
   };
   return (restart) ? Restart() : freshGame();
 }
@@ -109,8 +98,8 @@ Game.prototype.initLevel = function (level) {
       this.requestEntities(currentLevel.throttle);
       lastRequested = now;
     }
-    //fifteen seconds into the game, create the last batch of new entities
-    if (lastRequested && time > 12000) {
+    //ten seconds into the game, create the last batch of new entities
+    if (lastRequested && time > 6000) {
       this.requestEntities(currentLevel.throttle);
       if (currentLevel.additionalEntityRequests > 0) {
         for (let i = 0; i < currentLevel.additionalEntityRequests; i++) {
@@ -127,45 +116,84 @@ Game.prototype.initLevel = function (level) {
     //else, start
     let loop;
     loop = window.requestAnimationFrame(animation);
+    // initialize / update time interval between frames
+    then = then || now;
+    const frameInterval = 0.001 * (now - then); //in seconds
     let message = "You failed to win in under three minutes";
     //Book keeping check for all possible restart scenarios
-    const gameTime = Date.now() - this.epoch;
+    const moment = Date.now();
+    const gameTime = moment - this.epoch;
     //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
     const timeout = (gameTime > currentLevel.maxTime && !this.levelWon);
     //Scenario #2, If the player has not made a move beyond a minute
     let hasNotMovedForAMinute;
+    if (!currentLevel.moves) {
+      currentLevel.moves = this.player.moves;
+    }
     if (currentLevel.moves > 0) {
       const deltaMoves = this.player.moves - currentLevel.moves;
-      const deltaTS = gameTime - currentLevel.lastMoveCheckTS;
-      currentLevel.lastMoveCheckTS = (deltaMoves) ? gameTime : currentLevel.lastMoveCheckTS;
+      const deltaTS = moment - currentLevel.lastMoveCheckTS;
+      currentLevel.lastMoveCheckTS = (deltaMoves) ? moment : currentLevel.lastMoveCheckTS;
       currentLevel.moves = this.player.moves;
       hasNotMovedForAMinute = (deltaMoves < 1 && deltaTS > 60000);
       message = (hasNotMovedForAMinute) ? "You did not make a move in under a minute" : message;
-    } else {
-      currentLevel.moves = this.player.moves;
     }
     //Scenario #3, the player has used up all available lives
     let noLivesLeft = (currentLevel.lives < 1);
     message = (noLivesLeft) ? "You have exhausted the number of lives available" : message;
-    //open a drawing frame
-    Drawing.openFrame();
-    // initialize / update time interval between frames
-    then = then || now;
-    const frameInterval = 0.001 * (now - then); //in seconds
-    //animate all entities
-    for (const entity of this.entities) {
-      if (entity.hasBeenRenderedOnCreation) {
-        entity.skipClearOnTilt = true;
-        entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
+    //If restart scenarios are true, do ot draw the frame, instead
+    //Cancel the animation and issue a restart interrupt
+    if (timeout || hasNotMovedForAMinute || noLivesLeft) {
+      window.cancelAnimationFrame(loop);
+      //compose a message note
+      const notification = Engine.createNote(message);
+      //identify a target DOM element within the markup on which, an event occurs
+      const callBackTarget = `#restart-game`;
+      //Construct a helper object for when user provides input
+      const callBackOptions = {
+        //params define the context to work on after a call back on the event is triggered
+        //Also defines, any inputs to have handy in that context
+        params: {
+          context: {
+            task: 'restart'
+          },
+          input: (!noLivesLeft) ? false : true
+        },
+        //the target DOM child of the above markup generated, on which an event occurs
+        target: callBackTarget,
+        //event to listen to, on the above target
+        listenTo: 'click'
+      };
+      //present options
+      //return this.presentOption(notification, callBackOptions);
+    } else
+      //Do check for collisions
+      if (this.player.hasCollided()) {
+        window.cancelAnimationFrame(loop);
+        currentLevel.lives--;
+        this.doNotListenToPlayer()
+          .then(isDeaf => {
+            this.restart();
+          })
+          .catch(isNotDeaf => {
+            console.warn(isNotDeaf);
+          });
+      } else {
+        //open a drawing frame
+        Drawing.openFrame();
+        //animate all entities
+        for (const entity of this.entities) {
+          if (entity.hasBeenRenderedOnCreation) {
+            entity.skipClearOnTilt = true;
+            entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
+          }
+        }
+        //close the  previously opened frame of drawing
+        Drawing.closeFrame();
       }
-    }
-    //close the  previously opened frame of drawing
-    Drawing.closeFrame();
-    //Do collision Checks
-    const hasCollided = this.player.hasCollided();
-    currentLevel.lives -= (hasCollided) ? 1 : 0;
     //reset time
     then = now;
+    return false;
   };
   //level One
   const One = (preservedLevel) => {
@@ -212,6 +240,23 @@ Game.prototype.initLevel = function (level) {
     window.requestAnimationFrame(animation);
   }
   return this;
+};
+
+/*
+ *
+ */
+Game.prototype.doNotListenToPlayer = function () {
+  return new Promise((resolve, reject) => {
+    let willNotMove;
+    const poll = () => {
+      willNotMove = this.player.hasStoppedPropogations();
+      if (willNotMove) {
+        window.clearInterval(polly);
+        resolve();
+      }
+    };
+    const polly = window.setInterval(poll, 3);
+  });
 };
 /*
  *@requestEntities requests the game engine, to build, assemble individual non player

@@ -29,12 +29,12 @@ class Build {
         build: Blackhole
       },
       {
-        count: 3,
+        count: 1,
         avatar: 'rock.png',
         build: Asteroid
       },
       {
-        count: 2,
+        count: 1,
         avatar: 'planet.png',
         build: Planet
       },
@@ -90,6 +90,7 @@ class Build {
     return (component && Component) ? Component(options) : false;
   }
   buildResponsiveImage(asset, rasterRoot) {
+    const container = $('<div class="responsive-container"></div>');
     const id = asset.name;
     const image = `
           <figure>
@@ -111,8 +112,23 @@ class Build {
             </picture>
           </figure>
         `;
-    const container = $('<div class="responsive-container"></div>');
     container.html(image);
+    return container;
+  }
+  createNote(string) {
+    const container = $('<div class="responsive-container"></div>');
+    const notification = `<article class="alert animate">
+                            <section class=notification >
+                            <h2 class=notification-header>Hey there!</h2>
+                            <div class=notification-msg>
+                              <p>${string}</p>
+                            </div>
+                            <div class=notification-options>
+                              <button id=restart-game>Replay</button>
+                            </div>
+                            </section>
+                          </article>`;
+    container.html(notification);
     return container;
   }
 
