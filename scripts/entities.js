@@ -305,13 +305,14 @@ class Entity {
     //Used to reduce entities to a set of entities within the quadrant(s) this entity is mapped to
     const reducer = (accumalate, entitiesMappedToQuadrant) => {
       const entitiesInQuadrant = Drawing._QEM.get(entitiesMappedToQuadrant);
-      const doThisReduction = (entitiesInQuadrant.size <= 0) ? false : (() => {
+      const doThisReduction = (entitiesInQuadrant.size > 0);
+      if (doThisReduction) {
         for (const entity of entitiesInQuadrant) {
           if (entity !== this) {
             accumalate.add(entity);
           }
         }
-      })();
+      }
       return accumalate;
     };
     //identify collidables
@@ -390,7 +391,6 @@ class Player extends Entity {
     if (outOfCollidableSpace || noCollision || blackholeCollision) {
       return false;
     }
-    console.log(entitiesCollidedWith);
     this.interrupts.deafen();
     return true;
   }
@@ -832,6 +832,7 @@ class Star extends Entity {
     if (this.height <= 2 && this.width <= 2) {
       this.x = -Drawing._bounds.maxX;
       this.y = this.x;
+      this.quadrantsBoundTo = this.mapToQuadrant();
     } else {
 
       const angle = Math.PI / 180;
@@ -873,6 +874,7 @@ class Planet extends Entity {
     if (this.width <= 2 && this.height <= 2) {
       this.x = -Drawing._bounds.maxX;
       this.y = this.x;
+      this.quadrantsBoundTo = this.mapToQuadrant();
     } else {
       super.linearProgression(options);
     }
@@ -911,6 +913,7 @@ class Asteroid extends Entity {
     if (this.width <= 2 && this.height <= 2) {
       this.x = -Drawing._bounds.maxX;
       this.y = this.x;
+      this.quadrantsBoundTo = this.mapToQuadrant();
     } else {
       super.linearProgression(options);
     }

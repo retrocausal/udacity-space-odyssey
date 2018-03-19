@@ -40,9 +40,14 @@ class Drawing {
     const composite = Drawing.composite;
     composite.twoDimContext.restore();
   }
-  static clearComposite() {
-    const composite = Drawing.composite;
-    composite.canvas.width = composite.canvas.width;
+  static clearQEMs() {
+    const QEM = this._QEM;
+    const bounds = Drawing._bounds;
+    const quadrants = bounds.quadrants;
+    for (const quadrant of quadrants) {
+      QEM.get(quadrant)
+        .clear();
+    }
   }
   /*
    *@newLayer initializes a canvas to a set of dimensions,defines it

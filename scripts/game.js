@@ -53,7 +53,7 @@ Game.prototype.restart = function (options = {
   if (hardReload) {
     return window.location.reload(true);
   }
-  Drawing.clearComposite();
+  Drawing.clearQEMs();
   //reset game start time - this needs to be set by the initialized level of play
   this.epoch = false;
   //reset all entities;
