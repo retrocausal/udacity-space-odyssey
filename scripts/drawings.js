@@ -40,6 +40,10 @@ class Drawing {
     const composite = Drawing.composite;
     composite.twoDimContext.restore();
   }
+  static clearComposite() {
+    const composite = Drawing.composite;
+    composite.canvas.width = composite.canvas.width;
+  }
   /*
    *@newLayer initializes a canvas to a set of dimensions,defines it
    *@return canvas element initialized

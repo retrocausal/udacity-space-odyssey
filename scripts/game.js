@@ -53,6 +53,7 @@ Game.prototype.restart = function (options = {
   if (hardReload) {
     return window.location.reload(true);
   }
+  Drawing.clearComposite();
   //reset game start time - this needs to be set by the initialized level of play
   this.epoch = false;
   //reset all entities;
@@ -142,18 +143,27 @@ Game.prototype.initLevel = function (level) {
     // initialize / update time interval between frames
     then = then || now;
     const frameInterval = 0.001 * (now - then); //in seconds
-    let message = "You failed to win in under three minutes";
     //Book keeping check for all possible restart scenarios
     const moment = Date.now();
     const gameTime = moment - this.epoch;
     this.updateClock(gameTime);
-    //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
-    const timeout = (gameTime > currentLevel.maxTime && !currentLevel.objectiveAchievedBy(this.player));
-    //Scenario #2, If the player has not made a move beyond a minute
-    let hasNotMovedForAMinute;
+    //has player won?
+    const playerHasAchievedObjectives = currentLevel.objectiveAchievedBy(this.player);
+    //If the player conquered space on this level, show stats
+    if (playerHasAchievedObjectives) {
+      currentLevel.cancelPlay();
+      //show stats
+    }
+    //else, consider all restart scenarios, but first, update meta
     if (!currentLevel.moves) {
       currentLevel.moves = this.player.moves;
     }
+    let message;
+    //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
+    const timeout = (gameTime > currentLevel.maxTime && !playerHasAchievedObjectives);
+    message = (timeout) ? "You failed to win in under three minutes" : message;
+    //Scenario #2, If the player has not made a move beyond a minute
+    let hasNotMovedForAMinute;
     if (currentLevel.moves > 0) {
       const deltaMoves = this.player.moves - currentLevel.moves;
       const deltaTS = moment - currentLevel.lastMoveCheckTS;
@@ -166,7 +176,7 @@ Game.prototype.initLevel = function (level) {
     let noLivesLeft = (currentLevel.lives < 1);
     message = (noLivesLeft) ? "You have exhausted the number of lives available" : message;
     //If restart scenarios are true, do not draw the frame, instead
-    //Cancel the animation and issue a restart interrupt
+    //Cancel the animation and issue a notification with a callback to a game restart
     if (timeout || hasNotMovedForAMinute || noLivesLeft) {
       currentLevel.cancelPlay();
       //compose a message note
@@ -193,36 +203,34 @@ Game.prototype.initLevel = function (level) {
         listenTo: 'click'
       };
       //present options
-      return this.presentOption(notification, callBackOptions);
-    } else
-      //has the player conquered space on this level?
-      if (currentLevel.objectiveAchievedBy(this.player)) {
-        //show stats
-      } else
-        //Do check for collisions
-        if (this.player.hasCollided()) {
-          currentLevel.cancelPlay();
-          currentLevel.lives--;
-          return this.awaitPlayerHalt()
-            .then(hasHalted => {
-              return this.restart();
-            })
-            .catch(hasNotHalted => {
-              console.warn(hasNotHalted);
-            });
-        } else {
-          //open a drawing frame
-          Drawing.openFrame();
-          //animate all entities
-          for (const entity of this.entities) {
-            if (entity.hasBeenRenderedOnCreation) {
-              entity.skipClearOnTilt = true;
-              entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
-            }
+      return this.interact(notification, callBackOptions);
+    } else {
+      //Do check for collisions
+      if (this.player.hasCollided()) {
+        currentLevel.cancelPlay();
+        return this.awaitPlayerHalt()
+          .then(hasHalted => {
+            this.removeMetaLife();
+            currentLevel.lives--;
+            return this.restart();
+          })
+          .catch(hasNotHalted => {
+            console.warn(hasNotHalted);
+          });
+      } else {
+        //open a drawing frame
+        Drawing.openFrame();
+        //animate all entities
+        for (const entity of this.entities) {
+          if (entity.hasBeenRenderedOnCreation) {
+            entity.skipClearOnTilt = true;
+            entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
           }
-          //close the  previously opened frame of drawing
-          Drawing.closeFrame();
         }
+        //close the  previously opened frame of drawing
+        Drawing.closeFrame();
+      }
+    }
     //reset time
     then = now;
     return false;
@@ -307,7 +315,23 @@ Game.prototype.awaitPlayerHalt = function () {
 /*
  *@updateClock updates the on screen time
  */
-Game.prototype.updateClock = function () {};
+Game.prototype.updateClock = function (time) {
+  let readableStatsTime = new Date(time)
+    .toISOString()
+    .slice(11, -5);
+  $('#time')
+    .empty()
+    .html(readableStatsTime);
+};
+Game.prototype.removeMetaLife = function () {
+  const life = $('#lives')
+    .find('.animated-life:first-child');
+  life.find('.icon')
+    .toggle('puff', 'slow', () => {
+      return life.empty()
+        .remove();
+    });
+};
 /*
  *@requestEntities requests the game engine, to build, assemble individual non player
  *Entities
@@ -443,6 +467,9 @@ Game.prototype.presentPlayerOptions = function () {
                 component: 'player',
                 task: 'init'
               },
+              bookKeeping: {
+                task: 'updateMetaAvatar'
+              },
               input: asset
             },
             //the target DOM child of the above markup generated, on which an event occurs
@@ -451,7 +478,7 @@ Game.prototype.presentPlayerOptions = function () {
             listenTo: 'click'
           };
           //present options
-          this.presentOption(responsiveMarkup, callBackOptions);
+          this.interact(responsiveMarkup, callBackOptions);
           $('.option-header')
             .html('Select A Vehicle');
         };
@@ -493,10 +520,10 @@ Game.prototype.awaitMove = function (moves) {
   });
 };
 /*
- *@presentOption presents a single option for the user to choose from
+ *@interact presents a single option for the user to choose from
  *It then on an event on the pre specified target, initiates a read of user input
  */
-Game.prototype.presentOption = function (markup, callBack) {
+Game.prototype.interact = function (markup, callBack) {
   //Function to call back - generic
   const Cb = () => {
     //Once feedback is received, remove available options
@@ -531,6 +558,17 @@ Game.prototype.presentOption = function (markup, callBack) {
     //call back on event
     .on(callBack.listenTo, Cb);
 };
+Game.prototype.updateMetaAvatar = function (avatar) {
+  for (let i = 0; i < 3; i++) {
+    const img = new Image();
+    img.classList.add('icon');
+    img.setAttribute('src', avatar.url);
+    const animator = $('<div class="animated-life"></div>');
+    animator.append(img);
+    $('#lives')
+      .append(animator);
+  }
+};
 /*
  *@acceptUserInput, reads from user feedback, and initiates an appropriate Action/Task
  *@param resolve is Mandatory, and should be an object of context and input to that context
@@ -539,7 +577,9 @@ Game.prototype.presentOption = function (markup, callBack) {
  */
 Game.prototype.acceptUserInput = function (resolve) {
   const component = resolve.context.component || this;
+  const bookKeeping = resolve.bookKeeping || false;
   const task = resolve.context.task;
+  if (bookKeeping) this[bookKeeping.task](resolve.input);
   return (component !== this) ? this[component][task](resolve.input) : this[task](resolve.input);
 };
 Game.prototype.animate = function (helperObject, animation) {

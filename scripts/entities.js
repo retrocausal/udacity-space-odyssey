@@ -390,6 +390,7 @@ class Player extends Entity {
     if (outOfCollidableSpace || noCollision || blackholeCollision) {
       return false;
     }
+    console.log(entitiesCollidedWith);
     this.interrupts.deafen();
     return true;
   }

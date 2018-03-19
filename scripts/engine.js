@@ -89,22 +89,17 @@ class Build {
     const Component = this[`assemble${component}`] || false;
     return (component && Component) ? Component(options) : false;
   }
-  buildResponsiveImage(asset, rasterRoot) {
+  buildResponsiveImage(asset, rasterRoot, sizes = '30vw') {
     const container = $('<div class="responsive-container"></div>');
     const id = asset.name;
     const image = `
           <figure>
             <picture>
-              <source media="min-width:761px" sizes="30vw" srcset="
+              <source media="min-width:759px" sizes="${sizes}" srcset="
               ${rasterRoot}${asset.name}-small.${asset.extension} 360w,
               ${rasterRoot}${asset.name}-medium.${asset.extension} 480w,
-              ${rasterRoot}${asset.name}-large.${asset.extension} 640w
-              ">
-              </source>
-              <source media="min-width:1024px" sizes="30vw" srcset="
-              ${rasterRoot}${asset.name}-medium.${asset.extension} 360w,
-              ${rasterRoot}${asset.name}-large.${asset.extension} 480w,
-              ${rasterRoot}${asset.name}-x-large.${asset.extension} 640w
+              ${rasterRoot}${asset.name}-large.${asset.extension} 640w,
+              ${rasterRoot}${asset.name}-x-large.${asset.extension} 960w
               ">
               </source>
               <img class="responsive animate" src=${rasterRoot}${asset.name}-small.${asset.extension} id=${id}>
