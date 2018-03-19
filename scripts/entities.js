@@ -368,6 +368,7 @@ class Player extends Entity {
     this.x = (Drawing._bounds.maxX) / 2;
     this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
     [this.movingUp, this.movingDown, this.movingLeft, this.movingRight] = [false, false, false, false];
+    this.rescue = false;
   }
   /*
    *@manifest renders and activates the player
@@ -917,5 +918,38 @@ class Asteroid extends Entity {
     } else {
       super.linearProgression(options);
     }
+  }
+}
+
+class Udacity extends Entity {
+  constructor() {
+    super();
+  }
+  init(avatar) {
+    super.init();
+    this.width = this.bounds.maxEntityWidth;
+    this.height = this.bounds.maxEntityHeight * 0.99;
+    //set an avatar
+    this.avatar = avatar.value;
+    //define a distance to cover per second
+    this.defineDPS();
+    //precalculate max, min for collisions and quadrants
+    this.max = Math.max(this.height, this.width);
+    this.min = Math.min(this.height, this.width);
+    //redefine bounds according to the stars dimensions
+    this.bounds.esMinY = this.bounds.esMinY + this.max;
+    this.bounds.esMaxY = this.bounds.esMaxY - this.max;
+    this.reset();
+    this.render();
+    return this;
+  }
+  reset() {
+    this.x = Drawing._bounds.maxX - this.width;
+    this.y = Drawing._bounds.minY;
+    this.quadrantsBoundTo = this.mapToQuadrant();
+  }
+  render() {
+    this.reset();
+    super.render(this.x, this.y, this.composite, true);
   }
 }

@@ -22,6 +22,11 @@ class Build {
     const Player = {
       Vehicles
     };
+    //confugre imperilled
+    const Imperilled = {
+      avatar: 'udacity.png'
+    };
+    //configure matter
     const Matter = new Set([
       {
         count: 1,
@@ -48,6 +53,7 @@ class Build {
     const configuration = {
       Scenary,
       Player,
+      Imperilled,
       Matter
     };
     //retain a reference for retrieving configurations
@@ -81,6 +87,9 @@ class Build {
       }
     }
     return entities;
+  }
+  assembleImperilled() {
+    return new Udacity();
   }
   assembleLayers() {
     Drawing._layers = Drawing._layers || new WeakMap();

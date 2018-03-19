@@ -32,11 +32,23 @@ Game.prototype.init = function () {
   //Entities
   this.matter = Configuration.Matter;
   this.entities = this.requestEntities();
-  //Build complete, render and play
-  //Render Scene
-  this.renderScene();
-  this.levelWon = false;
-  this.play();
+  //Imperilled
+  this.imperilled = Engine.request('Imperilled');
+  this.cache.add(Configuration.Imperilled.avatar)
+    .then(cache_keys => {
+      const key = cache_keys[Symbol.iterator]()
+        .next()
+        .value;
+      const asset = this.cache.retrieve(key);
+      this.imperilled.init(asset);
+      //Build complete, render and play
+      //Render Scene
+      this.renderScene();
+      this.play();
+    })
+    .catch(exception => {
+      console.warn(exception);
+    });
   return this;
 };
 /*
@@ -60,6 +72,7 @@ Game.prototype.restart = function (options = {
   this.entities = this.requestEntities();
   //reset player
   this.player.reset(preserveMoves);
+  this.player.rescue = this.imperilled;
   //play
   this.play(true);
   return this;
@@ -73,6 +86,7 @@ Game.prototype.play = function (restart = false) {
     //ask feedback if this is the first game
     this.presentPlayerOptions()
       .then(hasBegun => {
+        this.player.rescue = this.imperilled;
         this.initLevel();
       }, isStalled => {
         //If the game hasn't begun, reload
@@ -227,6 +241,7 @@ Game.prototype.initLevel = function (level) {
             entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
           }
         }
+        this.imperilled.render();
         //close the  previously opened frame of drawing
         Drawing.closeFrame();
       }
