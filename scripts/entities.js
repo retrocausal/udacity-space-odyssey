@@ -371,6 +371,8 @@ class Player extends Entity {
     this.rescue = false;
     this.hasFetchedImperilled = false;
     this.notAlreadyDocked = true;
+    this.hasReturned = false;
+    this.isReturning = false;
   }
   /*
    *@manifest renders and activates the player
@@ -415,7 +417,7 @@ class Player extends Entity {
     const animate = () => {
       animation = window.requestAnimationFrame(animate);
       if (threshold <= this.rescue.width / 4) {
-        animation = window.cancelAnimationFrame(animation);
+        window.cancelAnimationFrame(animation);
         this.hasFetchedImperilled = true;
         this.rescue.hasBeenFetched = true;
         this.rescue.tow = Object.create(this);
@@ -425,6 +427,27 @@ class Player extends Entity {
       }
     };
     this.notAlreadyDocked = false;
+    window.requestAnimationFrame(animate);
+  }
+  finishRescue() {
+    const X = Drawing._bounds.maxX / 2;
+    let threshold = Math.abs(X - this.x);
+    const dx = (X > this.x) ? this.distancePerTrigger.x : this.distancePerTrigger.x * -1;
+    const dy = 0;
+    let animation;
+    const animate = () => {
+      animation = window.requestAnimationFrame(animate);
+      if (threshold <= this.distancePerTrigger.x) {
+        window.cancelAnimationFrame(animation);
+        this.hasReturned = true;
+      } else {
+        this.interpolatedMotion(dx, dy);
+        threshold = Math.abs(X - this.x);
+      }
+    }
+    this.isReturning = true;
+    this.y = Drawing.bounds.maxY - this.height;
+    this.render();
     window.requestAnimationFrame(animate);
   }
   /*
@@ -457,6 +480,8 @@ class Player extends Entity {
         if (this.y >= Drawing._bounds.minY + this.bounds.maxEntityHeight) this.moves++;
         if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
           this.beginRescue();
+        } else if (this.hasFetchedImperilled && !this.isReturning && this.y >= this.bounds.esMaxY - this.distancePerTrigger.y) {
+          this.finishRescue();
         } else
           window.requestAnimationFrame(animate);
       }
@@ -486,6 +511,8 @@ class Player extends Entity {
         if (this.moves > 0 && this.y < Drawing._bounds.maxY - this.bounds.maxEntityHeight) this.moves++;
         if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
           this.beginRescue();
+        } else if (this.hasFetchedImperilled && !this.isReturning && this.y >= this.bounds.esMaxY - this.distancePerTrigger.y) {
+          this.finishRescue();
         } else
           window.requestAnimationFrame(animate);
       }
