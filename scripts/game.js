@@ -72,7 +72,7 @@ Game.prototype.restart = function (options = {
   this.entities = this.requestEntities();
   //reset player
   this.player.reset(preserveMoves);
-  this.player.rescue = this.imperilled;
+  this.imperilled.reset();
   //play
   this.play(true);
   return this;
@@ -100,6 +100,7 @@ Game.prototype.play = function (restart = false) {
     this.player.manifest();
     this.awaitMove(this.player.moves)
       .then(hasBegun => {
+        this.player.rescue = this.imperilled;
         this.initLevel(Configurations.get(this)
           .meta.level);
       }, isStalled => {
@@ -234,6 +235,8 @@ Game.prototype.initLevel = function (level) {
       } else {
         //open a drawing frame
         Drawing.openFrame();
+        //render udacity ship
+        this.imperilled.render();
         //animate all entities
         for (const entity of this.entities) {
           if (entity.hasBeenRenderedOnCreation) {
@@ -241,7 +244,6 @@ Game.prototype.initLevel = function (level) {
             entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
           }
         }
-        this.imperilled.render();
         //close the  previously opened frame of drawing
         Drawing.closeFrame();
       }

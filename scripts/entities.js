@@ -369,6 +369,8 @@ class Player extends Entity {
     this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
     [this.movingUp, this.movingDown, this.movingLeft, this.movingRight] = [false, false, false, false];
     this.rescue = false;
+    this.hasFetchedImperilled = false;
+    this.notAlreadyDocked = true;
   }
   /*
    *@manifest renders and activates the player
@@ -401,6 +403,30 @@ class Player extends Entity {
   hasStoppedPropogations() {
     return (this.movingUp === false && this.movingDown === false && this.movingLeft === false && this.movingRight === false);
   }
+  isReadyToRescue() {
+    return (this.y < this.bounds.esMinY && (1.48 <= this.currentTilt && this.currentTilt <= 1.92))
+  }
+  beginRescue() {
+    const X = this.rescue.x;
+    let threshold = Math.abs(X - this.x);
+    const dx = (X > this.x) ? this.distancePerTrigger.x : this.distancePerTrigger.x * -1;
+    const dy = 0;
+    let animation;
+    const animate = () => {
+      animation = window.requestAnimationFrame(animate);
+      if (threshold <= this.rescue.width / 4) {
+        animation = window.cancelAnimationFrame(animation);
+        this.hasFetchedImperilled = true;
+        this.rescue.hasBeenFetched = true;
+        this.rescue.tow = Object.create(this);
+      } else {
+        this.interpolatedMotion(dx, dy);
+        threshold = Math.abs(X - this.x);
+      }
+    };
+    this.notAlreadyDocked = false;
+    window.requestAnimationFrame(animate);
+  }
   /*
    *@registerInterruptHandlers registers a set of acceptable motion triggers
    *And Also, activates them.
@@ -419,7 +445,7 @@ class Player extends Entity {
         animation = window.requestAnimationFrame(animate);
         //Only move down, if the player's current vertical position is yet to cross the threshold
         //And, if the threshold itself, is not beyond the canvas
-        if (this.y <= threshold || threshold <= (Drawing._bounds.minY)) {
+        if (this.y <= threshold || threshold < (Drawing._bounds.minY)) {
           window.cancelAnimationFrame(animation);
           this.movingUp = false;
         } else {
@@ -428,8 +454,11 @@ class Player extends Entity {
         }
       };
       if (!this.movingUp) {
-        this.moves++;
-        window.requestAnimationFrame(animate);
+        if (this.y >= Drawing._bounds.minY + this.bounds.maxEntityHeight) this.moves++;
+        if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
+          this.beginRescue();
+        } else
+          window.requestAnimationFrame(animate);
       }
       return false;
     };
@@ -455,7 +484,10 @@ class Player extends Entity {
       };
       if (!this.movingDown) {
         if (this.moves > 0 && this.y < Drawing._bounds.maxY - this.bounds.maxEntityHeight) this.moves++;
-        window.requestAnimationFrame(animate);
+        if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
+          this.beginRescue();
+        } else
+          window.requestAnimationFrame(animate);
       }
       return false;
     };
@@ -486,7 +518,10 @@ class Player extends Entity {
       };
       if (!this.movingRight) {
         this.moves++;
-        window.requestAnimationFrame(animate);
+        if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
+          this.beginRescue();
+        } else
+          window.requestAnimationFrame(animate);
       }
       return false;
     };
@@ -517,15 +552,24 @@ class Player extends Entity {
       };
       if (!this.movingLeft) {
         this.moves++;
-        window.requestAnimationFrame(animate);
+        if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
+          this.beginRescue();
+        } else
+          window.requestAnimationFrame(animate);
       }
       return false;
     };
     const arrowRightAltHandler = () => {
-      this.rotate('right');
+      if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
+        this.beginRescue();
+      } else
+        this.rotate('right');
     };
     const arrowLeftAltHandler = () => {
-      this.rotate();
+      if (this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled) {
+        this.beginRescue();
+      } else
+        this.rotate();
     };
     //define a map of acceptable keyboard triggers to action on that trigger
     //This helps to define a particular player motion on the compositing canvas
@@ -927,7 +971,7 @@ class Udacity extends Entity {
   }
   init(avatar) {
     super.init();
-    this.width = this.bounds.maxEntityWidth;
+    this.width = this.bounds.maxEntityWidth * 1.1;
     this.height = this.bounds.maxEntityHeight * 0.99;
     //set an avatar
     this.avatar = avatar.value;
@@ -944,12 +988,17 @@ class Udacity extends Entity {
     return this;
   }
   reset() {
-    this.x = Drawing._bounds.maxX - this.width;
+    this.x = Drawing._bounds.maxX - 2 * this.width;
     this.y = Drawing._bounds.minY;
-    this.quadrantsBoundTo = this.mapToQuadrant();
+    this.hasBeenFetched = false;
   }
   render() {
-    this.reset();
+    if (!this.hasBeenFetched) {
+      this.reset();
+    } else {
+      this.x = this.tow.x - this.width / 4;
+      this.y = this.tow.y;
+    }
     super.render(this.x, this.y, this.composite, true);
   }
 }
