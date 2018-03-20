@@ -87,6 +87,14 @@ main {
   text-align: center;
 }
 
+.notification-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
 .alert, .notification {
   width: 100%;
   display: flex;
@@ -145,6 +153,13 @@ main {
 
 .meta {
   width: 50%;
+  padding: 0;
+  margin: 1vmax auto;
+  height: auto;
+}
+
+.meta-scorecard {
+  width: 100%;
   padding: 0;
   margin: 1vmax auto;
   height: auto;
