@@ -1,3 +1,139 @@
 Space Odyssey
 ===============================
-For detailed instructions on how to get started, check out this [guide](https://docs.google.com/document/d/1v01aScPjSWCCWQLIpFqvg3-vXLH2e8_SZQKC8jNO0Dc/pub?embedded=true).
+## Install
+ - Clone this repository
+ - `cd` to the clone
+ - run `bower install`, Only If you already do not have a `bower-components` directory under the project root.
+    > ##### _Note_
+    > `Bower`, is a front end dependency and package installer/manager
+    > You can see what it does at [Bower][5e57d8c7].
+    >
+    > _If you do not have bower, you can run `npm install -g bower`_
+ - Once you ran `bower install`, you should have a `bower-components` directory under the project root.
+ - That is all! play to rescue Udacity at whim!
+
+## About This Project
+  > This is a project coded to pass a Udacity course on the front end web development track.
+  > It requires a thorough understanding of
+  >     - HTML5 Canvas element
+  >     - Javascript Promises
+  >     - Event Listeners on the DOM
+  >     - Animating with the requestAnimationFrame method of a browser window
+
+> Apart from which, It needs to exhibit logical separation of concerns.
+> The rubric that needs to be adhered to at the minimum, is found [here][234a61ad]
+> This project has been developed, using some of the latest ES syntax, making the code as readable at first glance, as possible.
+> The code itself, is documented exhaustively where required.The comments at places, highlight the thought behind a certain approach.
+
+## Reflections
+  - Separation of concerns
+    ##### The cache
+   >  - The project, first coneived a *caching* rewrite of what Udacity provided as a starter code.
+   >  - The project has a class for caching now, instead of a function.
+   >  - Yes, that meant about 10x the lines of code on the udacity starter code
+   >  - However, It was an opportunity to ode a promise based cache with idiomatic method names such as `cache.add().then ....` or , `cache.retrieve()` which sounded more readable.
+
+  ##### The Engine
+  >  - Udacity provided a prototypal definition of an engine that did almost everything from
+  >         - Producing New Entities
+  >         - Initializing them
+  >         - Rendering them
+  >         - Animating them
+  >         - Updating them during a span of a frame
+  > Also Did.:
+  >        - Producing a Player(s)
+  >        - Initializing/Animating/Updating/Rendering them.
+  > Also Did.:
+  >        - Collision detection
+  >        - Scoring / Notifying/ Finishing the game
+
+  **That was simply too much for a single class to do.**
+
+  > So, this project has an engine that
+  >     - Produces Entities / Player / Imperilled (Read Components)
+  >     - Generates Responsive markup on request
+  >     - Does simple/complex math on request
+  >     - Initializes/Configures a new Game, and issues a run game command
+  > Nothing more!
+
+  ##### The Drawing
+  > The drawing, is a helper component that draws everything required to be drawn.
+  > It has both `Static` as well as `Non static` methods and properties.
+  >
+  > For example,
+  >    - the `layers` or `canvas` elements drawing the background scenary/entity space and its inhabitants / the player, are separate canvases.
+  >    - so, the Drawing has a static `layers` property, that is a `Set` of 3 layers as identified above.
+  >    - The background scenary is the `Primer`, then the other two, are `Composites`
+  >    - Also, The project needs a `spacial division of the canvases` for easier and efficient collision detection
+  >    - And so, the Drawing logically divides itself into 4 smaller quadrants which apply to drawable composites.
+
+  >All of these are static because, they Only need to be defined Once, and reset Once, and Read from, multiple times.
+  >    - The other methods for Drawing, like
+  >       - Paint something somewhere
+  >       - Construct a Scene from a set of images
+  >       - Project a hologram
+  >       - Animate a scene etc..
+  >
+  > Are extensible / overridable
+
+  ##### The Entity
+  > The entity defines all the generic behaviour for all sorts of entities
+  >    - Interpolated Movements across the composite layers
+  >    - Rotations
+  >    - Spin
+  >    - Rendering themselves via a drawing helper
+  >    - Mapping themselves to a spacial quadrant
+  >    - Detecting collisions for when they have been superposed on the drawing.
+
+  > The entity behaviour, is then extended by individual entities like the Blackhole / Asteroid / Planet / Player / Udacity Ship, the Imperilled.
+  > Each of these entities, behave like an entity, are generally aware of themselves as an entity is.
+  > But then, each of them, Also have their own inndividuality / eccentricities.
+  > For example,
+  >    - The Blackhole, `FEEDS` whereas others do not.
+  >    - The Planet is spherical, but Asteroids are not.
+  >    - The Player has controlled movement, but others do not.
+  >    - The imperilled udacity ship, can be towed, but others can not.
+  >
+  > so on, so forth..
+
+  ##### The Game
+  >The Game itself, is what creates the play on the screen.
+
+  >   - It essentially `Requests` the `Engine` for `Components` to be produced
+  >        at various times post start of play, and before start of play.
+  >   - It accepts User inputs, Interacts with the User
+  >   - Also Notifies the User of the State of play when necessary.
+  >   - It `Animates` the Entities produced by the `Engine`, via the `Drawing`.
+  >   - It `Requests` Collision Detection from the Player, on Player movement
+  >       between the Player, and the various entities occupying the
+  >       shared space across two composite layers.
+  >   - On collision, It handles stoppage of play and / or a restart of a level
+  >
+  >The Game, Maintains a State of an individual level, via a Configurations `global` `WeakMap`. It retrieves a configurations for a compoenent when required, modifies and writes it when required too.
+  > Each Level of the Game, has it's **OWN** Objectives, and the level is deemd **WON**, If the player achieves those Objectives.
+
+## TO-DO
+  - [ ] **Refactor For Redundancies**
+  >  _There are some functions, that do the same stuff. Like animating linear motion for the player. Needs to be a single module, with different options as params_
+
+  - [ ] **New Levels of Play**
+  - [ ] **Separate Math from the Main Animation**
+  - [ ] **Improve Math**
+
+ >  The Math used, is despicable at the moment.
+ > For example, the rate at which the blackhole grows, or, the rate at which the star shrinks, are some silly random whimsical calculation at the moment.
+
+## Self Assessment
+##### Also A Note to the Reviewer
+
+Criteria  |Qualification   |  Comment
+--|---|--
+ Error Free | The game functions correctly and runs error free <ul><li>Player can not move off screen</li><li>Vehicles cross the screen</li><li>Vehicle-player collisions happen logically (not too early or too late)</li><li>Vehicle-player collision resets the game</li><li>something happens when a player wins</li></ul> |The game **IS** error free. <ul><li>Player **Does not** move off screen</li><li>I Really Do not know how to perceive this, the rubric needs **SOME Clarity**. However, Assuming, that the player can move across the screen, without intentionally colliding, means, that the code should meet this spec.</li><li>A collision between the Player, and an entity **Unless** the entity is a **Blackhole**, Does reset the game. Regarding How I code the behaviour on colliding with the blackhole, It is a **Personal** *Whim*</li><li>A Statistic is shown, On level completion</li></ul>
+ Object Oriented Code | Game objects (player and vehicles) are implemented using JavaScript object-oriented programming features.  | They very much *Are* Implemented on **Prototypal inheritance** / **The new `class` -> `extends` way**.
+  Comments| Comments are present and effectively explain longer code procedures. As a rule of thumb: describe what all custom functions and object methods do.  | If One glances through the code, One can easily see, that the comments outdo the code itself, in volume.Also, each decision to an approach is documented too. However, Some functions, that are hardly 10 lines or less, do not have extensive documentation.
+ Code Quality |Code is formatted with consistent, logical, and easy-to-read formatting as described in the Udacity JavaScript Style Guide.   | **This is where, a Udacity Review comes handy**. **No Self Assessment Here**
+  |   |
+
+
+  [5e57d8c7]: https://bower.io "Package management for the front end web"
+  [234a61ad]: https://review.udacity.com/#!/projects/2696458597/rubric "project rubric"
