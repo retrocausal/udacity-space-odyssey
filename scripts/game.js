@@ -112,7 +112,7 @@ Game.prototype.play = function (restart = false) {
       });
   };
   return (restart) ? Restart() : freshGame();
-}
+};
 /*
  *@initLevel initates a level of play, and begins animations
  */
@@ -479,7 +479,7 @@ Game.prototype.renderScene = function () {
       //scroll the hologram
       return this.animate(this.spaceTimeContinuum, animation);
     }, error => {
-      throw (error)
+      throw (error);
     })
     .catch(exception => {
       console.warn(exception);

@@ -122,6 +122,6 @@ class Cache {
   }
   retrieve(Key) {
     const key = String(Key);
-    return (key && this.staticAssets.has(key) && this.isReady(key)) ? this.staticAssets.get(key) : false
+    return (key && this.staticAssets.has(key) && this.isReady(key)) ? this.staticAssets.get(key) : false;
   }
 }

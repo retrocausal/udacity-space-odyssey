@@ -110,7 +110,7 @@ class Entity {
       //If we are looking at quadrant bounds that involve canvas bounds,
       //we need to extend the range by the width of this entity
       //because, an entity is not off canvas, until, the entire entity has moved off canvas
-      if (quadrant.id == 0 || 3) {
+      if (quadrant.id === 0 || quadrant.id == 3) {
         quadrantMinHorizontalSpan -= max;
       } else {
         quadrantMaxHorizontalSpan += max;
@@ -175,7 +175,7 @@ class Entity {
   /*
    *@rotate defines one rotation along the center of this entity by an angle specified / by 15 degrees
    */
-  rotate(direction = 'left', angle, animate = true) {
+  rotate(direction = 'left', angle = false, animate = true) {
     let radians = 0;
     let rotation;
     const Angle = angle || this.radians;
@@ -410,7 +410,7 @@ class Player extends Entity {
     return (this.movingUp === false && this.movingDown === false && this.movingLeft === false && this.movingRight === false);
   }
   isReadyToRescue() {
-    return (this.y < this.bounds.esMinY && (1.48 <= this.currentTilt && this.currentTilt <= 1.92))
+    return (this.y < this.bounds.esMinY && (1.48 <= this.currentTilt && this.currentTilt <= 1.92));
   }
   beginRescue() {
     const X = this.rescue.x;
@@ -448,7 +448,7 @@ class Player extends Entity {
         this.interpolatedMotion(dx, dy);
         threshold = Math.abs(X - this.x);
       }
-    }
+    };
     this.isReturning = true;
     this.y = Drawing.bounds.maxY - this.height;
     this.render();
@@ -938,7 +938,7 @@ class Planet extends Entity {
     this.avatar_id = avatar_id;
     //Set a predefined ceil and floor limit for planet's dimensions
     //else, a planet could be larger than a star
-    this.maxWidth = this.bounds.maxEntityWidth * .75;
+    this.maxWidth = this.bounds.maxEntityWidth * 0.75;
     this.minWidth = this.bounds.minEntityWidth * 1.75;
     this.minHeight = false;
     this.maxHeight = false;
@@ -978,7 +978,7 @@ class Asteroid extends Entity {
     this.avatar_id = avatar_id;
     //Set a predefined ceil and floor limit for asteroid's dimensions
     //else, an asteroid could be larger than a star
-    this.maxWidth = this.bounds.maxEntityWidth * .6;
+    this.maxWidth = this.bounds.maxEntityWidth * 0.6;
     this.minWidth = this.bounds.minEntityWidth * 1.25;
     this.minHeight = false;
     this.maxHeight = false;

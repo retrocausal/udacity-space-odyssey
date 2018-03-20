@@ -239,8 +239,8 @@ class Drawing {
       bgImage.onload = () => {
         ////Begin resolve
         //Resize and downscale the sprite to save memory. Animations/ Renderers MUST MANDATORILY upscale later
-        canvas.width = bgImage.width * .15;
-        canvas.height = bgImage.height * .15;
+        canvas.width = bgImage.width * 0.15;
+        canvas.height = bgImage.height * 0.15;
         context.drawImage(bgImage, 0, 0, bgImage.width, bgImage.height, 0, 0, canvas.width, canvas.height);
         resolve(canvas);
       };
