@@ -68,12 +68,21 @@ class Build {
   get _Game() {
     return false;
   }
+  /*
+   *@run, is the initiator of the new game that is built by this engine.
+   *This is called on document load, and initializes the pre built game
+   */
   run() {
     return this.Game.init();
   }
+  //Creates a Player
   assemblePlayer() {
     return new Player();
   }
+  /*
+   *@assembleEntities, is a factory for matter occupying game space
+   *It creates a set of requested entities, at a throttled rate
+   */
   assembleEntities(Options) {
     const [Matter, throttle] = Options;
     const entities = new Set();
@@ -88,16 +97,24 @@ class Build {
     }
     return entities;
   }
+  //Creates the Imperilled Udacity Space shuttle
   assembleImperilled() {
     return new Udacity();
   }
+  // Initializes the Drawing layers as a map that holds canvasses on the DOM
   assembleLayers() {
     Drawing._layers = Drawing._layers || new WeakMap();
   }
+  /*
+   *@request, assembles a component that the game requests
+   */
   request(component, options = false) {
     const Component = this[`assemble${component}`] || false;
     return (component && Component) ? Component(options) : false;
   }
+  /*
+   *@buildResponsiveImage builds a responsive markup to display images
+   */
   buildResponsiveImage(asset, rasterRoot, sizes = '30vw') {
     const container = $('<div class="responsive-container"></div>');
     const id = asset.name;
@@ -119,6 +136,9 @@ class Build {
     container.html(image);
     return container;
   }
+  /*
+   *@createNote creates a notification card
+   */
   createNote(string) {
     const container = $('<div class="notification-container"></div>');
     const notification = `<article class="alert animate">
@@ -135,12 +155,18 @@ class Build {
     container.html(notification);
     return container;
   }
+  /*
+   *@getPresentableTime creates a string of time from time in milliseconds
+   */
   getPresentableTime(ms) {
     let readableTime = new Date(ms)
       .toISOString()
       .slice(11, -5);
     return readableTime;
   }
+  /*
+   *@spinUpStatistics creates a statistics card to show once the player wins
+   */
   spinUpStatistics(message, levelOfPlay) {
     const container = $('<div class="notification-container"></div>');
     const lives = (3 - levelOfPlay.lives) ? (3 - levelOfPlay.lives) : 'none';
@@ -175,6 +201,7 @@ class Build {
 const Configurations = new WeakMap();
 //start build
 const Engine = new Build();
+//On document load, begin the game
 $(() => {
   Engine.run();
 });
