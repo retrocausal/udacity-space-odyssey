@@ -61,20 +61,20 @@
 
 @media Screen and (min-width:1280px) {
   main {
-    min-width: 57vw;
-    width: 57vw;
-    min-height: calc((9/16)*57vw);
-    height: calc((9/16)*57vw);
+    min-width: 50vw;
+    width: 50vw;
+    min-height: calc((9/16)*50vw);
+    height: calc((9/16)*50vw);
   }
   .panel {
-    min-width: 57vw;
-    width: 57vw;
+    min-width: 50vw;
+    width: 50vw;
   }
   .responsive-container {
-    width: calc(57vw/3);
+    width: calc(50vw/3);
   }
   .responsive {
-    height: calc((9/16)*(57vw/3));
+    height: calc((9/16)*(50vw/3));
   }
   .player-controls {
     width: 19%;

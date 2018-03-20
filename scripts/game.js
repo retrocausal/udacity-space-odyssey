@@ -341,7 +341,7 @@ Game.prototype.initLevel = function (level) {
 };
 
 /*
- *
+ *@awaitPlayerHalt awaits a complete halt of current player movements on collision
  */
 Game.prototype.awaitPlayerHalt = function () {
   return new Promise((resolve, reject) => {
@@ -350,7 +350,9 @@ Game.prototype.awaitPlayerHalt = function () {
       willNotMove = this.player.hasStoppedPropogations();
       if (willNotMove) {
         window.clearInterval(polly);
-        resolve();
+        setTimeout(() => {
+          resolve();
+        }, 300);
       }
     };
     const polly = window.setInterval(poll, 3);
