@@ -432,10 +432,12 @@ Game.prototype.initEntities = function (entities) {
         if (!avatar) throw (`The avatar for ${entity.constructor.name} is not cached`);
         entity.init(avatar.value, this.player);
         if (this.epoch) {
-          entity.x = entity.bounds.esMinX;
-          const ceil = entity.bounds.esMinY + entity.bounds.maxEntityWidth;
-          const floor = entity.bounds.esMinY;
+          let ceil = entity.bounds.esMinY + entity.bounds.maxEntityWidth;
+          let floor = entity.bounds.esMinY;
           entity.y = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
+          ceil = entity.bounds.esMaxX + entity.bounds.maxEntityWidth;
+          floor = entity.bounds.esMaxX;
+          entity.x = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
         }
         //render the entity and skipClear on render
         entity.render(entity.x, entity.y, false, true);

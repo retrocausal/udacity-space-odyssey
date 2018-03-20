@@ -143,7 +143,7 @@ class Build {
   }
   spinUpStatistics(message, levelOfPlay) {
     const container = $('<div class="notification-container"></div>');
-    const lives = (3 - levelOfPlay.lives) ? (3 - levelOfPlay.lives) : 3;
+    const lives = (3 - levelOfPlay.lives) ? (3 - levelOfPlay.lives) : 'none';
     const statCard = `<div class="meta-scorecard">
                         <h2 class="meta-header">How you fared</h2>
                         <ul class="meta-list">

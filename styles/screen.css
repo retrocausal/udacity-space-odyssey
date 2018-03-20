@@ -76,4 +76,7 @@
   .responsive {
     height: calc((9/16)*(57vw/3));
   }
+  .player-controls {
+    width: 15%;
+  }
 }

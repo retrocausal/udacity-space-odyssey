@@ -27,6 +27,9 @@ class Entity {
     [this.x, this.y] = this.position();
     return this;
   }
+  /*
+   *@defineDPS defines an entities speed per second
+   */
   defineDPS() {
     //Set A Maximum Distance To Cover Per move
     this.distancePerSecond = {
@@ -281,7 +284,7 @@ class Entity {
     //finally, rotate this entity
     const angle = Math.PI / 180;
     this.rotate('left', angle, false);
-
+    this.distancePerSecond.x += time / acceleration;
   }
   /*
    *@hasCollided first accumalates entities in the same spacial grid as this entity
@@ -373,6 +376,7 @@ class Player extends Entity {
     this.notAlreadyDocked = true;
     this.hasReturned = false;
     this.isReturning = false;
+    this.currentTilt = 0;
   }
   /*
    *@manifest renders and activates the player
@@ -672,6 +676,9 @@ class Player extends Entity {
         keyDownEvent.preventDefault();
         MatchableAlternateTrigger = `alt${key}`;
       }
+      if (key == 'ArrowDown' || key == 'ArrowUp') {
+        keyDownEvent.preventDefault();
+      }
       //Only When a new key is pressed, record events
       //If the user holds down a particular key, for example, do not
       //record that event
@@ -690,20 +697,29 @@ class Player extends Entity {
       removekeyUpListener();
       document.removeEventListener('keydown', keyDown, false);
     };
-
     //Activate Panel
     const cpanelUp = document.querySelector('#ctrl-up');
     const cpanelDown = document.querySelector('#ctrl-down');
     const cpanelRight = document.querySelector('#ctrl-right');
     const cpanelLeft = document.querySelector('#ctrl-left');
-    cpanelUp.addEventListener('click', arrowUpHandler);
-    cpanelDown.addEventListener('click', arrowDownHandler);
-    cpanelLeft.addEventListener('click', arrowLeftHandler);
-    cpanelRight.addEventListener('click', arrowRightHandler);
+    const listen = () => {
+      addKeyDownListener();
+      cpanelUp.addEventListener('click', arrowUpHandler, false);
+      cpanelDown.addEventListener('click', arrowDownHandler, false);
+      cpanelLeft.addEventListener('click', arrowLeftHandler, false);
+      cpanelRight.addEventListener('click', arrowRightHandler, false);
+    };
+    const deafen = () => {
+      removeKeyDownListener();
+      cpanelUp.removeEventListener('click', arrowUpHandler, false);
+      cpanelDown.removeEventListener('click', arrowDownHandler, false);
+      cpanelLeft.removeEventListener('click', arrowLeftHandler, false);
+      cpanelRight.removeEventListener('click', arrowRightHandler, false);
+    };
 
     return {
-      listen: addKeyDownListener,
-      deafen: removeKeyDownListener
+      listen: listen,
+      deafen: deafen
     };
   }
 }
