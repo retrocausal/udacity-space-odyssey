@@ -162,18 +162,43 @@ Game.prototype.initLevel = function (level) {
     const moment = Date.now();
     const gameTime = moment - this.epoch;
     this.updateClock(gameTime);
+    currentLevel.time = gameTime;
+    let message;
     //has player won?
     const playerHasAchievedObjectives = currentLevel.objectiveAchievedBy(this.player);
     //If the player conquered space on this level, show stats
     if (playerHasAchievedObjectives) {
       currentLevel.cancelPlay();
-      //show stats
+      message = "You have successfully guided the Udacity ship back home";
+      //show stats//identify a target DOM element within the markup on which, an event occurs
+      const callBackTarget = `#restart-game`;
+      const options = {
+        hardReload: true,
+        preserveMoves: false
+      };
+      //Construct a helper object for when user provides input
+      const callBackOptions = {
+        //params define the context to work on after a call back on the event is triggered
+        //Also defines, any inputs to have handy in that context
+        params: {
+          context: {
+            task: 'restart'
+          },
+          input: options
+        },
+        //the target DOM child of the above markup generated, on which an event occurs
+        target: callBackTarget,
+        //event to listen to, on the above target
+        listenTo: 'click'
+      };
+      //present options
+      return this.interact(
+        Engine.spinUpStatistics(message, currentLevel), callBackOptions);
     }
     //else, consider all restart scenarios, but first, update meta
     if (!currentLevel.moves) {
       currentLevel.moves = this.player.moves;
     }
-    let message;
     //Scenario #1 , if the level hasn't been conquered by the level's specific maxtime
     const timeout = (gameTime > currentLevel.maxTime && !playerHasAchievedObjectives);
     message = (timeout) ? "You failed to win in under three minutes" : message;
@@ -264,25 +289,27 @@ Game.prototype.initLevel = function (level) {
       additionalEntityRequests: 1,
       acceleration: 1.5,
       objectiveAchievedBy: function (player) {
-        return player.hasFetched && player.hasReturned
+        return player.hasFetchedImperilled && player.hasReturned;
       },
       moves: 0,
-      maxTime: 180000,
-      lastMoveCheckTS: epoch,
       lives: 3,
-      animations: new Set(),
+      maxTime: 180000,
+      time: false,
       cancelPlay: function () {
         for (const animation of this.animations) {
           window.cancelAnimationFrame(animation);
         }
         return false;
+      },
+      reset: function () {
+        this.lastMoveCheckTS = epoch;
+        this.animations = new Set();
       }
     };
     //init level for animation reference
     currentLevel = preservedLevel || freshLevel;
     //reset level's timestamps and animation pointers
-    currentLevel.lastMoveCheckTS = epoch;
-    currentLevel.animations = new Set();
+    currentLevel.reset();
     //assert level of play - required in restart scenarios because of collisions
     Configurations.get(this)
       .meta.level = currentLevel;
@@ -333,9 +360,7 @@ Game.prototype.awaitPlayerHalt = function () {
  *@updateClock updates the on screen time
  */
 Game.prototype.updateClock = function (time) {
-  let readableStatsTime = new Date(time)
-    .toISOString()
-    .slice(11, -5);
+  const readableStatsTime = Engine.getPresentableTime(time);
   $('#time')
     .empty()
     .html(readableStatsTime);

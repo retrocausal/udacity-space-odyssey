@@ -448,6 +448,7 @@ class Player extends Entity {
     this.isReturning = true;
     this.y = Drawing.bounds.maxY - this.height;
     this.render();
+    this.interrupts.deafen();
     window.requestAnimationFrame(animate);
   }
   /*
@@ -898,10 +899,10 @@ class Star extends Entity {
     const Time = (time > 0.1 || time <= 0) ? 0.1 : time;
     //The star, is consumed by the blackhole in the game
     //SO, decrement the dimensions, by a factor of time
-    this.height -= (this.height <= 2) ? 0 : (this.height / 2) * Time;
-    this.width -= (this.height >= 2 || this.width <= 0) ? 0 : (this.width / 10) * Time;
+    this.height -= (this.height <= 2) ? 0 : (this.height) * Time;
+    this.width -= (this.height >= 2 || this.width <= 0) ? 0 : (this.width / 2) * Time;
     //Once the star has been consumed, move it off canvas
-    if (this.height <= 2 && this.width <= 2) {
+    if (this.height <= 10 && this.width <= 10) {
       this.x = -Drawing._bounds.maxX;
       this.y = this.x;
       this.quadrantsBoundTo = this.mapToQuadrant();
