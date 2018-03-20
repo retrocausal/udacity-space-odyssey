@@ -284,7 +284,7 @@ class Entity {
     //finally, rotate this entity
     const angle = Math.PI / 180;
     this.rotate('left', angle, false);
-    this.distancePerSecond.x += time / acceleration;
+    this.distancePerSecond.x += time / (3 * acceleration);
   }
   /*
    *@hasCollided first accumalates entities in the same spacial grid as this entity
