@@ -34,12 +34,12 @@ class Build {
         build: Blackhole
       },
       {
-        count: 1,
+        count: 3,
         avatar: 'rock.png',
         build: Asteroid
       },
       {
-        count: 1,
+        count: 2,
         avatar: 'planet.png',
         build: Planet
       },
@@ -120,7 +120,7 @@ class Build {
     return container;
   }
   createNote(string) {
-    const container = $('<div class="responsive-container"></div>');
+    const container = $('<div class="notification-container"></div>');
     const notification = `<article class="alert animate">
                             <section class=notification >
                             <h2 class=notification-header>Hey there!</h2>
@@ -135,7 +135,41 @@ class Build {
     container.html(notification);
     return container;
   }
-
+  getPresentableTime(ms) {
+    let readableTime = new Date(ms)
+      .toISOString()
+      .slice(11, -5);
+    return readableTime;
+  }
+  spinUpStatistics(message, levelOfPlay) {
+    const container = $('<div class="notification-container"></div>');
+    const lives = (3 - levelOfPlay.lives) ? (3 - levelOfPlay.lives) : 3;
+    const statCard = `<div class="meta-scorecard">
+                        <h2 class="meta-header">How you fared</h2>
+                        <ul class="meta-list">
+                          <li class="meta-list-item">Time:</li>
+                          <li class="meta-list-item" id="stats-time">${this.getPresentableTime(levelOfPlay.time)}</li>
+                          <li class="meta-list-item">Lives expended:</li>
+                          <li class="meta-list-item">${lives}</li>
+                          <li class="meta-list-item">Moves made:</li>
+                          <li class="meta-list-item">${levelOfPlay.moves}</li>
+                        </ul>
+                      </div>`;
+    const notification = `<article class="alert animate">
+                            <section class=notification >
+                            <h2 class=notification-header>Hey there Udacity says Thanks!</h2>
+                            <div class=notification-msg>
+                              <p>${message}</p>
+                            </div>
+                            ${statCard}
+                            <div class=notification-options>
+                              <button class=notification-button id=restart-game>Replay Game</button>
+                            </div>
+                            </section>
+                          </article>`;
+    container.html(notification);
+    return container;
+  }
 }
 //One thing, to BIND them all
 const Configurations = new WeakMap();
