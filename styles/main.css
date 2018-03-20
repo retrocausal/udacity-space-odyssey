@@ -13,6 +13,7 @@ BODY {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
+  background-color: #111;
 }
 
 header, footer {
@@ -36,6 +37,7 @@ main {
   min-height: 78vh;
   height: 78vh;
   position: relative;
+  box-shadow: 0 0 10px 0 #333;
 }
 
 #primer, #composite, .composite, .options {
@@ -143,6 +145,8 @@ main {
   width: 100%;
   margin: 0 auto;
   flex-wrap: wrap;
+  background-color: #f5f6f7;
+  box-shadow: 0 0 10px 0 #aaa;
 }
 
 .player-controls {
@@ -300,6 +304,66 @@ main {
 
 .control-help-list-item:nth-of-type(2n) {
   text-align: left;
+}
+
+.readme {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  order: 10;
+  color: #d0d0d0;
+  background-color: #111;
+  box-shadow: 0 0 10px 0 #333;
+}
+
+.header {
+  width: 100%;
+}
+
+.readme-header, .objective-list-header {
+  font-family: 'Quicksand', sans-serif;
+  margin: 1vmax auto;
+}
+
+.objective {
+  width: 100%;
+}
+
+.objective-list, .objective-sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  list-style-position: inside;
+}
+
+.objective-list-item, .objective-sublist-item {
+  width: 100%;
+  font-family: 'Montserrat', serif;
+  text-align: left;
+  list-style-type: decimal-leading-zero;
+  padding: 1vmin;
+  font-weight: normal;
+  margin: 0;
+  line-height: 2;
+}
+
+.objective-sublist-item {
+  list-style-type: circle;
+}
+
+blockquote {
+  padding: 3vmin;
+  border-left: 5px solid #d0f0d0;
+  text-align: justify;
+  line-height: 1.5;
+}
+
+.note {
+  font-weight: bold;
+  margin: auto 1vmin;
+  text-decoration: underline;
+  letter-spacing: 0.1em;
 }
 
 figure, picture {

@@ -61,19 +61,19 @@
 
 @media Screen and (min-width:1280px) {
   main {
-    min-width: 60vw;
-    width: 60vw;
-    min-height: calc((9/16)*60vw);
-    height: calc((9/16)*60vw);
+    min-width: 57vw;
+    width: 57vw;
+    min-height: calc((9/16)*57vw);
+    height: calc((9/16)*57vw);
   }
   .panel {
-    min-width: 60vw;
-    width: 60vw;
+    min-width: 57vw;
+    width: 57vw;
   }
   .responsive-container {
-    width: calc(60vw/3);
+    width: calc(57vw/3);
   }
   .responsive {
-    height: calc((9/16)*(60vw/3));
+    height: calc((9/16)*(57vw/3));
   }
 }
