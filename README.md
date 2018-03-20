@@ -15,10 +15,10 @@ Space Odyssey
 ## About This Project
   > This is a project coded to pass a Udacity course on the front end web development track.
   > It requires a thorough understanding of
-  >     - HTML5 Canvas element
-  >     - Javascript Promises
-  >     - Event Listeners on the DOM
-  >     - Animating with the requestAnimationFrame method of a browser window
+  >   - HTML5 Canvas element
+  >   - Javascript Promises
+  >   - Event Listeners on the DOM
+  >   - Animating with the requestAnimationFrame method of a browser window
 
 > Apart from which, It needs to exhibit logical separation of concerns.
 > The rubric that needs to be adhered to at the minimum, is found [here][234a61ad]
@@ -35,25 +35,33 @@ Space Odyssey
 
   ##### The Engine
   >  - Udacity provided a prototypal definition of an engine that did almost everything from
-  >         - Producing New Entities
-  >         - Initializing them
-  >         - Rendering them
-  >         - Animating them
-  >         - Updating them during a span of a frame
-  > Also Did.:
-  >        - Producing a Player(s)
-  >        - Initializing/Animating/Updating/Rendering them.
-  > Also Did.:
-  >        - Collision detection
-  >        - Scoring / Notifying/ Finishing the game
+  >     - Producing New Entities
+  >     - Initializing them
+  >     - Rendering them
+  >     - Animating them
+  >     - Updating them during a span of a frame
+  >
+  > -  Also Did:
+  >
+  >   - Producing a Player(s)
+  >   - Initializing/Animating/Updating/Rendering them.
+  >
+  > - Also Did:
+  >
+  >    - Collision detection
+  >    - Scoring / Resetting / Finishing the game
+  > - Also Did:
+  >   - Scene construction from a set of image sprites
+  >   - Rendering background scene animations
 
   **That was simply too much for a single class to do.**
 
   > So, this project has an engine that
-  >     - Produces Entities / Player / Imperilled (Read Components)
-  >     - Generates Responsive markup on request
-  >     - Does simple/complex math on request
-  >     - Initializes/Configures a new Game, and issues a run game command
+  >   - Produces Entities / Player / Imperilled (Read Components)
+  >   - Generates Responsive markup on request
+  >   - Does simple/complex math on request
+  >   - Initializes/Configures a new Game, and issues a run game command
+  >
   > Nothing more!
 
   ##### The Drawing
@@ -123,6 +131,8 @@ Space Odyssey
  >  The Math used, is despicable at the moment.
  > For example, the rate at which the blackhole grows, or, the rate at which the star shrinks, are some silly random whimsical calculation at the moment.
 
+- [ ] **Make the game playable on extra small screens**
+
 ## Self Assessment
 ##### Also A Note to the Reviewer
 
@@ -132,7 +142,48 @@ Criteria  |Qualification   |  Comment
  Object Oriented Code | Game objects (player and vehicles) are implemented using JavaScript object-oriented programming features.  | They very much *Are* Implemented on **Prototypal inheritance** / **The new `class` -> `extends` way**.
   Comments| Comments are present and effectively explain longer code procedures. As a rule of thumb: describe what all custom functions and object methods do.  | If One glances through the code, One can easily see, that the comments outdo the code itself, in volume.Also, each decision to an approach is documented too. However, Some functions, that are hardly 10 lines or less, do not have extensive documentation.
  Code Quality |Code is formatted with consistent, logical, and easy-to-read formatting as described in the Udacity JavaScript Style Guide.   | **This is where, a Udacity Review comes handy**. **No Self Assessment Here**
-  |   |
+
+## Playing the game
+
+#### The Premise (Saga)
+
+The game opens to a scene where, An imperilled space shuttle *Marked* **U** for *Udacity*, is on the top right corner of the canvas.
+This shuttle, has lost it's guidance systems, and hence can not make it back to safety.
+##### The Space to traverse
+Meanwhile, the space between the Imperilled Udacity ship, and safety, is playing out a scene where, a blackhole is consuming a star and it's planetary system.
+
+*Note*
+> The blackhole will finish consuming the star, and begin oscillating, while traversing the space left to right.
+
+#### The Objective
+ - Do not collide with matter occupying the space between the two safe zones.
+ - Traverse the space, vertically, while avoiding collisions.
+ - On Reaching the top most zone of space, the player **will be guided to dock** with the imperilled space shuttle.
+
+ >**_Note on the guided docking mechanism in place_**
+ > - **The player** **_Needs_** to `ROTATE` right, to an angle between 90 and 100 degrees. i.e, after reaching the top most zone of space.
+ > - **The Player on such** `ROTATION`, will **GLIDE TOWARDS THE IMPERILLED SHUTTLE** without having to **move right / left**
+ >  - Once `Superposed`, the Imperilled shuttle follows the player.
+ - Tow the imperilled space shuttle back to safety on the lower most safe zone.
+
+#### Collisions
+ - Colliding with the blackhole, **WOULD NOT RESET** play.
+ - Colliding with any other entity, **WILL RESET** play.
+
+ #### The Blackhole
+ >  - The blackhole, after consuming the star, **will oscillate and move left to right.**
+ >
+ > - Once the blackkhole completes **ONE LENGTH OF SPACE** , It begins **Consuming other entities** Albeit, very SLOWLY.
+ >
+ > - During such consumptions, The blackhole, **WILL INCREASE THE LINEAR SPEED OF THE ENTITY IT COLLIDES WITH**
+ >  - Also, The entity colliding with the blackhole, will see **UNCONTROLLABLE** **MOTION** along the **X AXIS ALONE**
+
+#### Controls
+ - Moving UP **Use Arrow UP**
+ - Moving DOWN **Use Arrow DOWN**
+ - Moving RIGHT **Use Arrow RIGHT**
+ - Moving LEFT **Use Arrow LEFT**
+ - ROTATIONS **Use ALT + ARROW RIGHT / LEFT**
 
 
   [5e57d8c7]: https://bower.io "Package management for the front end web"
