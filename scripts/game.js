@@ -131,13 +131,13 @@ Game.prototype.initLevel = function (level) {
     //time lag is the difference between game epoch, and now
     //else, time lag is the difference between now and the last time new entities were requested
     const time = (!needNewEntities) ? (Date.now() - this.epoch) : (now - needNewEntities);
-    //three point 6 seconds post game epoch, create new throttled number of entites
-    if (!needNewEntities && time >= 3600) {
+    //a half a second post game epoch, create new throttled number of entites
+    if (!needNewEntities && time >= 500) {
       this.requestEntities(currentLevel.throttle);
       needNewEntities = now;
     }
-    //ten seconds into the game, create the last batch of new entities
-    if (needNewEntities && time > 6000) {
+    //one and a quarter seconds into the game, create the last batch of new entities
+    if (needNewEntities && time > 600) {
       this.requestEntities(currentLevel.throttle);
       if (currentLevel.additionalEntityRequests > 0) {
         for (let i = 0; i < currentLevel.additionalEntityRequests; i++) {
@@ -434,11 +434,11 @@ Game.prototype.initEntities = function (entities) {
         if (!avatar) throw (`The avatar for ${entity.constructor.name} is not cached`);
         entity.init(avatar.value, this.player);
         if (this.epoch) {
-          let ceil = entity.bounds.esMinY + entity.bounds.maxEntityWidth;
-          let floor = entity.bounds.esMinY;
+          let floor = entity.bounds.esMinY + entity.bounds.maxEntityWidth;
+          let ceil = entity.bounds.esMaxY - entity.bounds.maxEntityWidth;
           entity.y = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
           ceil = entity.bounds.esMaxX + entity.bounds.maxEntityWidth;
-          floor = entity.bounds.esMaxX;
+          floor = entity.bounds.esMinX - entity.bounds.maxEntityWidth;
           entity.x = Math.floor(Math.random() * (ceil - floor + 1)) + floor;
         }
         //render the entity and skipClear on render
