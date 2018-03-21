@@ -26,8 +26,8 @@ Space Odyssey
 > The code itself, is documented exhaustively where required.The comments at places, highlight the thought behind a certain approach.
 
 ## Reflections
-  - Separation of concerns
-    ##### The cache
+  - ### Separation of concerns
+   ##### The cache
    >  - The project, first coneived a *caching* rewrite of what Udacity provided as a starter code.
    >  - The project has a class for caching now, instead of a function.
    >  - Yes, that meant about 10x the lines of code on the udacity starter code
@@ -44,7 +44,7 @@ Space Odyssey
   > -  Also Did:
   >
   >   - Producing a Player(s)
-  >   - Initializing/Animating/Updating/Rendering them.
+  >   - Initializing/Animating/Updating/Rendering the Player(s).
   >
   > - Also Did:
   >
@@ -82,7 +82,7 @@ Space Odyssey
   >       - Project a hologram
   >       - Animate a scene etc..
   >
-  > Are extensible / overridable
+  > Are non static, extensible / overridable because different entities might render themselves differently
 
   ##### The Entity
   > The entity defines all the generic behaviour for all sorts of entities
@@ -91,7 +91,7 @@ Space Odyssey
   >    - Spin
   >    - Rendering themselves via a drawing helper
   >    - Mapping themselves to a spacial quadrant
-  >    - Detecting collisions for when they have been superposed on the drawing.
+  >    - Detecting collisions for when they have been superposed on another entity on the drawing.
 
   > The entity behaviour, is then extended by individual entities like the Blackhole / Asteroid / Planet / Player / Udacity Ship, the Imperilled.
   > Each of these entities, behave like an entity, are generally aware of themselves as an entity is.
@@ -118,7 +118,7 @@ Space Odyssey
   >   - On collision, It handles stoppage of play and / or a restart of a level
   >
   >The Game, Maintains a State of an individual level, via a Configurations `global` `WeakMap`. It retrieves a configurations for a compoenent when required, modifies and writes it when required too.
-  > Each Level of the Game, has it's **OWN** Objectives, and the level is deemd **WON**, If the player achieves those Objectives.
+  > Each Level of the Game, has it's **OWN** Objectives, and the level is deemed **WON**, If the player achieves those Objectives.
 
 ## TO-DO
   - [ ] **Refactor For Redundancies**
@@ -153,7 +153,7 @@ This shuttle, has lost it's guidance systems, and hence can not make it back to 
 Meanwhile, the space between the Imperilled Udacity ship, and safety, is playing out a scene where, a blackhole is consuming a star and it's planetary system.
 
 *Note*
-> The blackhole will finish consuming the star, and begin oscillating, while traversing the space left to right.
+> The blackhole will finish consuming the star, and begin oscillating, while traversing the space right to left.
 
 #### The Objective
  - Do not collide with matter occupying the space between the two safe zones.
@@ -171,9 +171,9 @@ Meanwhile, the space between the Imperilled Udacity ship, and safety, is playing
  - Colliding with any other entity, **WILL RESET** play.
 
  #### The Blackhole
- >  - The blackhole, after consuming the star, **will oscillate and move left to right.**
+ >  - The blackhole, after consuming the star, **will oscillate and move right to left.**
  >
- > - Once the blackkhole completes **ONE LENGTH OF SPACE** , It begins **Consuming other entities** Albeit, very SLOWLY.
+ > - Once the blackhole completes **ONE LENGTH OF SPACE** , It begins **Consuming other entities** Albeit, very SLOWLY.
  >
  > - During such consumptions, The blackhole, **WILL INCREASE THE LINEAR SPEED OF THE ENTITY IT COLLIDES WITH**
  >  - Also, The entity colliding with the blackhole, will see **UNCONTROLLABLE** **MOTION** along the **X AXIS ALONE**
