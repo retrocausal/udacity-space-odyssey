@@ -85,7 +85,7 @@ Game.prototype.play = function (restart = false) {
   const freshGame = () => {
     this.initLevel();
     //ask feedback if this is the first game
-    this.presentPlayerOptions()
+   /* this.presentPlayerOptions()
       .then(hasBegun => {
         this.player.rescue = this.imperilled;
         //this.initLevel();
@@ -95,7 +95,7 @@ Game.prototype.play = function (restart = false) {
       })
       .catch(exception => {
         console.warn(exception);
-      });
+      });*/
   };
   const Restart = () => {
     this.player.manifest();
