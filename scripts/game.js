@@ -325,7 +325,7 @@ Game.prototype.initEntities = function ( entities ) {
         const avatar = this.cache.retrieve( cache_key );
         if ( !avatar ) throw ( `The avatar for ${entity.constructor.name} is not cached` );
         entity.init( avatar.value, this.player );
-        if ( this.epoch && ( entity.constructor.name !== 'Blackhole' || 'Star' ) ) {
+        if ( this.epoch && ( entity.constructor.name !== 'Blackhole' || entity.constructor.name !== 'Star' ) ) {
           let floor = entity.bounds.esMinY + entity.bounds.maxEntityWidth;
           let ceil = entity.bounds.esMaxY - entity.bounds.maxEntityWidth;
           entity.y = Math.floor( Math.random() * ( ceil - floor + 1 ) ) + floor;
