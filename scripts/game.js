@@ -276,7 +276,7 @@ Game.prototype.initLevel = function (level) {
       //open a drawing frame
         Drawing.openFrame();
         //render udacity ship
-        this.imperilled.render();
+       // this.imperilled.render();
         //animate all entities
         for (const entity of this.entities) {
           if (entity.hasBeenRenderedOnCreation) {
