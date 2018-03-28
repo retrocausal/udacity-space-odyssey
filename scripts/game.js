@@ -151,7 +151,7 @@ Game.prototype.initLevel = function ( level ) {
     const moment = Date.now();
     const gameTime = moment - this.epoch;
     if ( gameTime > 150000 ) {
-      window.location.reload();
+      window.location.reload( true );
     }
     this.updateClock( gameTime );
     currentLevel.time = gameTime;
