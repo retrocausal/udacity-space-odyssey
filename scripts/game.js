@@ -40,15 +40,15 @@ Game.prototype.init = function () {
         .next()
         .value;
       const asset = this.cache.retrieve(key);
-      this.imperilled.init(asset);
-      //Build complete, render and play
-      //Render Scene
-      this.renderScene();
-      this.play();
+      //this.imperilled.init(asset);
     })
     .catch(exception => {
       console.warn(exception);
     });
+   //Build complete, render and play
+      //Render Scene
+      this.renderScene();
+      this.play();
   return this;
 };
 /*
@@ -83,11 +83,12 @@ Game.prototype.restart = function (options = {
  */
 Game.prototype.play = function (restart = false) {
   const freshGame = () => {
+    this.initLevel();
     //ask feedback if this is the first game
     this.presentPlayerOptions()
       .then(hasBegun => {
         this.player.rescue = this.imperilled;
-        this.initLevel();
+        //this.initLevel();
       }, isStalled => {
         //If the game hasn't begun, reload
         window.location.reload(true);
@@ -218,7 +219,7 @@ Game.prototype.initLevel = function (level) {
     //If restart scenarios are true, do not draw the frame, instead
     //Cancel the animation and issue a notification with a callback to a game restart
     if (timeout || hasNotMovedForAMinute || noLivesLeft) {
-      currentLevel.cancelPlay();
+      //currentLevel.cancelPlay();
       //compose a message note
       const notification = Engine.createNote(message);
       //identify a target DOM element within the markup on which, an event occurs
@@ -243,10 +244,10 @@ Game.prototype.initLevel = function (level) {
         listenTo: 'click'
       };
       //present options
-      return this.interact(notification, callBackOptions);
+      //return this.interact(notification, callBackOptions);
     } else {
       //Do check for collisions
-      if (this.player.hasCollided()) {
+      /*if (this.player.hasCollided()) {
         currentLevel.cancelPlay();
         return this.awaitPlayerHalt()
           .then(hasHalted => {
@@ -271,7 +272,20 @@ Game.prototype.initLevel = function (level) {
         }
         //close the  previously opened frame of drawing
         Drawing.closeFrame();
-      }
+      }*/
+      //open a drawing frame
+        Drawing.openFrame();
+        //render udacity ship
+        this.imperilled.render();
+        //animate all entities
+        for (const entity of this.entities) {
+          if (entity.hasBeenRenderedOnCreation) {
+            entity.skipClearOnTilt = true;
+            entity.requestAnimationFrame('linearProgression', [frameInterval, currentLevel.acceleration, orientation]);
+          }
+        }
+        //close the  previously opened frame of drawing
+        Drawing.closeFrame();
     }
     //reset time
     then = now;
