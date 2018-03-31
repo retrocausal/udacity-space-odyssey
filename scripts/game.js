@@ -87,7 +87,8 @@ Game.prototype.play = function ( restart = false ) {
     this.presentPlayerOptions()
       .then( hasBegun => {
         this.player.toBeRescued = this.imperilled;
-        this.initLevel();
+        this.initLevel()
+          .run();
       }, isStalled => {
         //If the game hasn't begun, reload
         window.location.reload( true );
@@ -102,7 +103,8 @@ Game.prototype.play = function ( restart = false ) {
       .then( hasBegun => {
         this.player.toBeRescued = this.imperilled;
         this.initLevel( Configurations.get( this )
-          .meta.level );
+            .meta.level )
+          .run();
       }, isStalled => {
         //If the game hasn't begun, reload
         window.location.reload( true );
@@ -117,11 +119,74 @@ Game.prototype.play = function ( restart = false ) {
  *@initLevel initates a level of play, and begins animations
  */
 Game.prototype.initLevel = function ( level ) {
+  let currentLevel;
+  //level One
+  const One = ( preservedLevel ) => {
+    //set an epoch for timed behaviours
+    const epoch = Date.now();
+    const freshLevel = {
+      number: 1,
+      //define a throttle to throttle number of entities created post epoch
+      throttle: ( Drawing._bounds.maxX > Drawing._bounds.maxY ) ? 1 : 2,
+      //define an acceleration rate for entity movements and set the number of additional entity requests
+      additionalEntityRequests: 1,
+      acceleration: 1.5,
+      objectiveAchievedBy: function ( player ) {
+        return player.hasFetchedImperilled && player.hasReturned;
+      },
+      moves: 0,
+      lives: 3,
+      maxTime: 180000,
+      time: false,
+      cancelPlay: function () {
+        for ( const animation of this.animations ) {
+          window.cancelAnimationFrame( animation );
+        }
+        return false;
+      },
+      reset: function () {
+        this.lastMoveCheckTS = epoch;
+        this.animations = new Set();
+      }
+    };
+    //init level for animation reference
+    currentLevel = preservedLevel || freshLevel;
+    //reset level's timestamps and animation pointers
+    currentLevel.reset();
+    //assert level of play - required in restart scenarios because of collisions
+    Configurations.get( this )
+      .meta.level = currentLevel;
+    //init time
+    this.epoch = epoch;
+    //reset animation time references
+    needNewEntities = false;
+    then = false;
+  };
+  //choose a level - fixed at one for now
+  const onLevel = ( level ) ? level.number : 1;
+  switch ( onLevel ) {
+  case 1:
+    One( level );
+    break;
+  default:
+    break;
+  }
+  return this;
+};
+/*
+ *@run is the heart of animations. Be it infusing new entities, or controlling flow of play,
+ *Or animating entities on the canvas, run does it all.
+ */
+
+Game.prototype.run = function () {
   //state holders for new batched infusion of entitites
   let needNewEntities, then, requestNewEntities;
-  //current level of play
-  let currentLevel;
+  const currentLevel = Configurations.get( this )
+    .meta.level;
   const orientation = ( Drawing._bounds.maxX > Drawing._bounds.maxY ) ? "landscape" : "portrait";
+  /*
+   *@timedRequest times infusion of entities. the delay is set per level of play
+   */
   const timedRequest = ( now ) => {
     if ( !currentLevel )
       return false;
@@ -147,6 +212,12 @@ Game.prototype.initLevel = function ( level ) {
       window.cancelAnimationFrame( requestNewEntities );
     }
   };
+  /*
+   *@animate animates entities, or not!
+   * controls the main animation loop in the game
+   * whether it continues play or not, depends on the configured level of play
+   * and the time that has passed
+   */
   const animation = ( now ) => {
     //If key parameters for motion have not been set, do not begin
     if ( !currentLevel.acceleration || !orientation )
@@ -277,68 +348,12 @@ Game.prototype.initLevel = function ( level ) {
     then = now;
     return false;
   };
-  //level One
-  const One = ( preservedLevel ) => {
-    //set an epoch for timed behaviours
-    const epoch = Date.now();
-    const freshLevel = {
-      number: 1,
-      //define a throttle to throttle number of entities created post epoch
-      throttle: ( Drawing._bounds.maxX > Drawing._bounds.maxY ) ? 1 : 2,
-      //define an acceleration rate for entity movements and set the number of additional entity requests
-      additionalEntityRequests: 1,
-      acceleration: 1.5,
-      objectiveAchievedBy: function ( player ) {
-        return player.hasFetchedImperilled && player.hasReturned;
-      },
-      moves: 0,
-      lives: 3,
-      maxTime: 180000,
-      time: false,
-      cancelPlay: function () {
-        for ( const animation of this.animations ) {
-          window.cancelAnimationFrame( animation );
-        }
-        return false;
-      },
-      reset: function () {
-        this.lastMoveCheckTS = epoch;
-        this.animations = new Set();
-      }
-    };
-    //init level for animation reference
-    currentLevel = preservedLevel || freshLevel;
-    //reset level's timestamps and animation pointers
-    currentLevel.reset();
-    //assert level of play - required in restart scenarios because of collisions
-    Configurations.get( this )
-      .meta.level = currentLevel;
-    //init time
-    this.epoch = epoch;
-    //reset animation time references
-    needNewEntities = false;
-    then = false;
-  };
-  //choose a level - fixed at one for now
-  const onLevel = ( level ) ? level.number : 1;
-  switch ( onLevel ) {
-  case 1:
-    One( level );
-    break;
-  default:
-    break;
-
-  }
-  //begin the game only if a level has been initialized
-  if ( Configurations.get( this )
-    .meta.level && currentLevel && this.epoch ) {
-    //schedule new batch of entities to be infused onto the composite
-    window.requestAnimationFrame( timedRequest );
-    //animate game entities,check game states
-    window.requestAnimationFrame( animation );
-  }
+  //schedule new batch of entities to be infused onto the composite
+  window.requestAnimationFrame( timedRequest );
+  //animate game entities,check game states
+  window.requestAnimationFrame( animation );
   return this;
-};
+}
 
 /*
  *@awaitPlayerHalt awaits a complete halt of current player movements on collision
