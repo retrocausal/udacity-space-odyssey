@@ -288,7 +288,7 @@ class Player extends Entity {
       let animation;
       const animate = () => {
         animation = window.requestAnimationFrame( animate );
-        //Only move, if the threshold, is greater than the current horizontal position of the plaayer
+        //Only move, if the threshold, is lesser than the current horizontal position of the plaayer
         if ( this.x > threshold ) {
           this.movingLeft = true;
           this.interpolatedMotion( dx, dy );
@@ -431,7 +431,13 @@ class Player extends Entity {
       cpanelLeft.removeEventListener( 'click', arrowLeftHandler, false );
       cpanelRight.removeEventListener( 'click', arrowRightHandler, false );
     };
-
+    // The whole exercise of wrapping up all event listeners in the below object, is two fold
+    /*
+     * 1. Until a keyDown event happens, there is no point listening to keyUps
+     * 2. Since the game needs to reset on collision, and the player should not move further,
+     * We need to unregister event listeners. This is only possible, if we capture
+     * the whole assignment of an event listener.
+     */
     return {
       listen: listen,
       deafen: deafen
