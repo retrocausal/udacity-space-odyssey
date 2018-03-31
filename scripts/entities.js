@@ -1,734 +1,4 @@
 /*
- *@Entity defines generic behaviours of any game entity
- *These behaviours need to be extended by individual entites, defining their individuality!
- */
-class Entity {
-  /*
-   * Constructor identifies a pre initiated composite canvas layer to render this entity on.
-   * And initializes this entity's position on the layer
-   */
-  constructor() {
-    this.renderer = new Matter()
-      .init();
-    const bounds = this.renderer.getBounds();
-    this.bounds = Object.create( bounds );
-    this.composite = this.renderer.composite;
-  }
-  init( ...options ) {
-    let [ maxW, maxH, minW, minH ] = options;
-    this.lerpFactor = 0.25;
-    [ this.width, this.height ] = this.size( maxW, maxH, minW, minH );
-    //Define an angle of rotation per frame
-    this.radians = 15 * ( Math.PI / 180 );
-    //initialize a current tilt angle
-    //rotation per rotation call will be the sum total of this.radians and this.currentTilt
-    this.currentTilt = 0;
-    //randomly position this entity
-    [ this.x, this.y ] = this.position();
-    return this;
-  }
-  /*
-   *@defineDPS defines an entities speed per second
-   */
-  defineDPS() {
-    //Set A Maximum Distance To Cover Per move
-    this.distancePerSecond = {
-      x: Math.ceil( ( this.bounds.esMaxX ) / ( this.width ) ),
-      y: Math.ceil( ( this.bounds.esMaxY ) / ( this.height ) )
-    };
-  }
-  /*
-   *@size defines a random dimension for this entity
-   */
-  size( ...options ) {
-    let [ ceilWidth, ceilHeight, floorWidth, floorHeight ] = options;
-    const ceilW = ceilWidth || this.bounds.maxEntityWidth;
-    const ceilH = ceilHeight || this.bounds.maxEntityHeight;
-    const floorW = floorWidth || this.bounds.minEntityWidth;
-    const floorH = floorHeight || this.bounds.minEntityHeight;
-    const randomW = Math.floor( Math.random() * ( ceilW - floorW + 1 ) ) + floorW;
-    const randomH = Math.floor( Math.random() * ( ceilH - floorH + 1 ) ) + floorH;
-    return [ randomW, randomH ];
-  }
-  /*
-   *@render renders this entity on a predefined/specified position on the composite/specified layer
-   */
-  render( ...options ) {
-    let [ x = false, y = false, layer = false, skipClear = false ] = options;
-    const X = ( x !== false ) ? x : this.x;
-    const Y = ( y !== false ) ? y : this.y;
-    const composite = layer || this.composite;
-    return this.renderer.paint( this.avatar, X, Y, this.width, this.height, composite, skipClear );
-  }
-  /*
-   *@position randomly generates an initial position for this entity on the composite layer
-   */
-  position() {
-    const randomX = Math.floor( Math.random() * ( ( this.bounds.esMaxX - this.bounds.maxEntityWidth ) - this.bounds.esMinX + 1 ) ) + this.bounds.esMinX;
-    const randomY = Math.floor( Math.random() * ( ( this.bounds.esMaxY - this.bounds.maxEntityHeight ) - this.bounds.esMinY + 1 ) ) + this.bounds.esMinY;
-    return [ randomX, randomY ];
-  }
-  /*
-   *Adaptive adapting per context on a frame
-   */
-  adapt( orientation = 'landscape' ) {
-    let queryY, queryX;
-    queryY = this.y + this.height;
-    queryX = this.x;
-    const max = this.max || Math.max( this.height, this.width );
-    const min = this.min || Math.min( this.height, this.width );
-    const exceedsesMaxY = ( queryY >= this.bounds.esMaxY );
-    const exceedsesMaxX = ( queryX >= this.bounds.esMaxX );
-    if ( exceedsesMaxY && orientation == 'portrait' ) {
-      this.y = this.bounds.esMinY;
-      const ceil = this.bounds.esMaxX - max;
-      const floor = this.bounds.esMinX;
-      this.x = Math.floor( Math.random() * ( ceil - floor + 1 ) ) + floor;
-    }
-    if ( exceedsesMaxX && orientation == 'landscape' ) {
-      this.x = this.bounds.esMinX - this.width;
-      const ceil = this.bounds.esMaxY;
-      const floor = this.bounds.esMinY;
-      this.y = Math.floor( Math.random() * ( ceil - floor + 1 ) ) + floor;
-    }
-  }
-  /*
-   *@mapToQuadrant maps this entity on to a predefined quadrant on the composite layer
-   */
-  mapToQuadrant() {
-    //gather pre defined quadrants
-    const quadrants = Drawing._bounds.quadrants;
-    const max = this.max || Math.max( this.height, this.width );
-    const threshold = this.height / 2;
-    //identify quadrants this entity is bound by, depending on its current position
-    const reducer = ( accumalate, quadrant ) => {
-      //define max and min binding canvas quadrant positions
-      let quadrantMaxHorizontalSpan = quadrant.maxX;
-      let quadrantMinHorizontalSpan = quadrant.minX;
-      let quadrantMaxVerticalSpan = quadrant.maxY;
-      let quadrantMinVerticalSpan = quadrant.minY;
-      //If we are looking at quadrant bounds that involve canvas bounds,
-      //we need to extend the range by the width of this entity
-      //because, an entity is not off canvas, until, the entire entity has moved off canvas
-      if ( quadrant.id === 0 || quadrant.id == 3 ) {
-        quadrantMinHorizontalSpan -= max;
-      } else {
-        quadrantMaxHorizontalSpan += max;
-      }
-      //This entitiy is quadrant bounds along the x axis if, either of the three points
-      //entity.x / entity.x -height/2 / entity.x +height/2 exist within the bounds of the quadrant
-      //we use the max dimension, and not the width along x and height along y because, the entities are //constantly rotating along the y axis
-      const quadrantXBound = ( quadrantMinHorizontalSpan <= ( this.x ) && ( this.x ) <= quadrantMaxHorizontalSpan ) || ( quadrantMinHorizontalSpan <= ( this.x - threshold ) && ( this.x - threshold ) <= quadrantMaxHorizontalSpan ) || ( quadrantMinHorizontalSpan <= ( this.x + threshold ) && ( this.x + threshold ) <= quadrantMaxHorizontalSpan );
-      //similar to the considerations above, for entity.y
-      const quadrantYBound = ( quadrantMinVerticalSpan <= ( this.y ) && ( this.y ) <= quadrantMaxVerticalSpan ) || ( quadrantMinVerticalSpan <= ( this.y - threshold ) && ( this.y - threshold ) <= quadrantMaxVerticalSpan ) || ( quadrantMinVerticalSpan <= ( this.y + threshold ) && ( this.y + threshold ) <= quadrantMaxVerticalSpan );
-      //Do not bind an entity that is off canvas
-      const investigate = ( ( Drawing._bounds.minX - max ) <= this.x && this.x <= ( Drawing._bounds.maxX + max ) ) && ( ( Drawing._bounds.minY ) <= this.y && this.y <= ( Drawing._bounds.maxY ) );
-      //If this entity is bound by the current quadrant being investigated, add it to the set of entities
-      //mapped by the current quadrant
-      if ( investigate && ( quadrantXBound && quadrantYBound ) ) {
-        Drawing._QEM.get( quadrant )
-          .add( this );
-        accumalate.add( quadrant );
-      } //else, delete this entity from the set of entities mapped by the current quadrant
-      else {
-        Drawing._QEM.get( quadrant )
-          .delete( this );
-      }
-      return accumalate;
-    };
-    //return a list of quadrants this entity occupies at the moment
-    const qbt = quadrants.reduce( reducer, new Set() );
-    return ( qbt.size > 0 ) ? qbt : new Set();
-  }
-  /*
-   *@isSuperposedOn checks for collisions
-   */
-  isSuperposedOn( object ) {
-    const oradius = object.height / 2;
-    const radius = this.height / 2;
-    const deltaX = Math.abs( ( this.x + this.width / 2 ) - ( object.x + object.width / 2 ) );
-    const deltaY = Math.abs( ( this.y + this.height / 2 ) - ( object.y + object.height / 2 ) );
-    const hypotenuse = Math.sqrt( deltaX * deltaX + deltaY * deltaY );
-    const threshold = oradius + radius;
-    const altRadius = this.width / 2;
-    const altoradius = object.width / 2;
-    const altThreshold = altRadius + altoradius;
-    //Do not collide with an entity that is off canvas
-    const collidableObject = ( ( Drawing._bounds.minX - object.max / 2 ) <= object.x && object.x <= ( Drawing._bounds.maxX + object.max / 2 ) ) && ( ( object.bounds.esMinY ) <= object.y && object.y <= ( object.bounds.esMaxY ) );
-    return collidableObject && hypotenuse < threshold;
-  }
-  /*
-   *@increment increments the number of an entity on the drawing
-   */
-  increment() {
-    const name = this.constructor.name;
-    Entity[ name ] = Entity[ name ] || 0;
-    return ++Entity[ name ];
-  }
-  /*
-   *@lerp linear interpolates the transition between coordinates
-   */
-  lerp( dx, dy ) {
-    this.x = this.x + ( dx ) * this.lerpFactor;
-    this.y = this.y + ( dy ) * this.lerpFactor;
-  }
-  /*
-   *@rotate defines one rotation along the center of this entity by an angle specified / by 15 degrees
-   */
-  rotate( direction = 'left', angle = false, animate = true ) {
-    let radians = 0;
-    let rotation;
-    const Angle = angle || this.radians;
-    const tilt = Angle / 10;
-    this.currentTilt = this.currentTilt || ( ( direction === 'right' ) ? tilt : -1 * tilt );
-    const Animate = () => {
-      if ( radians < Angle ) {
-        rotation = window.requestAnimationFrame( Animate );
-      } else {
-        window.cancelAnimationFrame( rotation );
-      }
-      this.tilt();
-      //increment radians by a tenth of 15 degrees
-      radians += tilt;
-      //increment current tilt on entity by the same measure of the Angle too, as reference to next call to rotation,
-      //as well as next frame in this animation call
-      this.currentTilt += ( direction === 'right' ) ? tilt : ( -1 ) * tilt;
-    };
-    const sansAnimation = () => {
-      this.currentTilt = this.currentTilt || 0;
-      this.currentTilt += ( direction === 'right' ) ? angle : -1 * angle;
-      this.tilt();
-    };
-    if ( animate )
-      window.requestAnimationFrame( Animate );
-    else
-      sansAnimation();
-    return this;
-  }
-  /*
-   *@tilt tilts this entity by the current angle of tilt.
-   *Use this to tilt this entity before linear motion
-   */
-  tilt() {
-    if ( this.currentTilt ) {
-      if ( this.currentTilt >= ( 360 * Math.PI / 180 ) ) {
-        this.currentTilt = this.currentTilt - ( 360 * Math.PI / 180 );
-      } else if ( this.currentTilt < ( -360 * Math.PI / 180 ) ) {
-        this.currentTilt = this.currentTilt + ( 360 * Math.PI / 180 );
-      }
-      //clear canvas
-      if ( !this.skipClearOnTilt ) this.renderer.clear( this.composite.canvas );
-      //save context
-      this.composite.twoDimContext.save();
-      //translate to the center of this entity
-      this.composite.twoDimContext.translate( ( this.x + this.width / 2 ), ( this.y + this.height / 2 ) );
-      //rotate by currentTilt
-      this.composite.twoDimContext.rotate( this.currentTilt );
-      //draw this entity's avatar on new coordinates because of tilt
-      //do not clear canvas, because we already have done it above
-      this.render( -this.width / 2, -this.height / 2, this.composite, true );
-      //restore context
-      this.composite.twoDimContext.restore();
-    }
-  }
-  /*
-   *@spin animates rotation on this entity
-   */
-  spin() {
-    const spin = ( now ) => {
-      window.requestAnimationFrame( spin );
-      this.rotate( 'right', 1 * ( Math.PI / 180 ) );
-    };
-    return window.requestAnimationFrame( spin );
-  }
-  /*
-   *@interpolatedMotion moves this entity via LERP
-   *@params dx,dy are Mandatory, and specify the distances to cover per axis
-   */
-  interpolatedMotion( dx, dy ) {
-    this.lerp( dx, dy );
-    const render = /*render this player without tilt, if there is no angle of tilt*/
-      ( !this.currentTilt ) ? this.render() :
-      /*or, tilt and render if there is a tilt*/
-      this.tilt();
-    //Map to a quadrant on the Drawing, after each move
-    this.quadrantsBoundTo = this.mapToQuadrant();
-  }
-  /*
-   *@requestAnimationFrame requests A particular animation
-   *This method is called once per frame. Can be used to batch / throttle animations
-   *@param options is MANDATORY, and has to be the delta of now, and time when animation began
-   *@param animation is Mandatory, and should name the animation to process
-   */
-  requestAnimationFrame( animation, options ) {
-    return this[ animation ]( options );
-  }
-  linearProgression( options ) {
-    const [ time, acceleration, orientation, swap ] = options;
-    //hack to deflate the browser's animation frame throttle on inactive tabs
-    const Time = ( time > 0.1 || time <= 0 ) ? 0.1 : time;
-    let dx, dy;
-    //if a request for swapping orientation is made, swap distances to move
-    if ( !swap ) {
-      dx = ( orientation == 'landscape' ) ? this.distancePerSecond.x : 0;
-      dy = ( orientation == 'portrait' ) ? this.distancePerSecond.y : 0;
-    } else {
-      dx = ( orientation == 'landscape' ) ? 0 : this.distancePerSecond.x;
-      dy = ( orientation == 'portrait' ) ? 0 : this.distancePerSecond.y;
-    }
-    //define distance this frame
-    const Dx = Math.round( ( dx * Time * acceleration ) * 100 ) / 100;
-    const Dy = Math.round( ( dy * Time * acceleration ) * 100 ) / 100;
-    //total distance is the distance for this frame plus the current position
-    this.x = this.x + Dx;
-    this.y = this.y + Dy;
-    //pull off canvas entities back on to canvas
-    this.adapt( orientation );
-    //map this entity to binding quadrants
-    this.quadrantsBoundTo = this.mapToQuadrant();
-    //finally, rotate this entity
-    const angle = Math.PI / 180;
-    this.rotate( 'left', angle, false );
-    this.distancePerSecond.x += time / ( 2 * acceleration );
-  }
-  /*
-   *@hasCollided first accumalates entities in the same spacial grid as this entity
-   *Then, loops through the identified set of entities individually, to check for superpositions
-   *of this entity and the entity in loop
-   *Returns a set of colliding entities, or, en empty set
-   */
-  hasCollided() {
-    //Loop through entities mapped to the quadrant this entity is on
-    const getSuperposedEntities = ( entities ) => {
-      let superposedEntities = new Set();
-      for ( const entity of entities ) {
-        //If this entity is superposed on the entity in this loop
-        //add the entity in this loop to a cllecting set
-        if ( this.isSuperposedOn( entity ) ) {
-          superposedEntities.add( entity );
-        }
-      }
-      return superposedEntities;
-    };
-    //Used to reduce entities to a set of entities within the quadrant(s) this entity is mapped to
-    const reducer = ( accumalate, entitiesMappedToQuadrant ) => {
-      const entitiesInQuadrant = Drawing._QEM.get( entitiesMappedToQuadrant );
-      const doThisReduction = ( entitiesInQuadrant.size > 0 );
-      if ( doThisReduction ) {
-        for ( const entity of entitiesInQuadrant ) {
-          if ( entity !== this ) {
-            accumalate.add( entity );
-          }
-        }
-      }
-      return accumalate;
-    };
-    //identify collidables
-    const entitiesInMySpacialDiv = [ ...this.quadrantsBoundTo ].reduce( reducer, new Set() );
-    //check and return superposed set of entities
-    return ( entitiesInMySpacialDiv.size > 0 ) ? getSuperposedEntities( entitiesInMySpacialDiv ) : new Set();
-  }
-
-  encircle( color = '#ffffff', width = 2 ) {
-    this.composite.twoDimContext.lineWidth = width;
-    this.composite.twoDimContext.strokeStyle = color;
-    this.composite.twoDimContext.beginPath();
-    this.composite.twoDimContext.arc( this.x + this.width / 2, this.y + this.height / 2, this.height / 2, 0, Math.PI * 2, true );
-    this.composite.twoDimContext.stroke();
-  }
-}
-/*
- *@Player extends an Entity and defines a Player
- */
-class Player extends Entity {
-  constructor() {
-    super();
-    const id = `player-composite-${this.increment()}`;
-    const composite = this.renderer.setCustomComposite( id );
-    this.composite = Drawing._layers.get( composite.canvas );
-  }
-  /*
-   *@init identifies a rendering context, overrides the pre initialized random x,y positions
-   *Renders and registers event listeners for this player on the compositing canvas
-   */
-  init( avatar ) {
-    super.init();
-    //set an avatar
-    this.avatar = avatar.value;
-    this.reset();
-    //register appropriate event listeners for depicting motion on the compositing canvas
-    this.interrupts = this.registerInterruptHandlers();
-    this.manifest();
-    return this;
-  }
-  reset( preserveMoves ) {
-    this.moves = ( preserveMoves ) ? this.moves : 0;
-    //set/reset dimensions
-    this.width = this.bounds.maxEntityWidth;
-    this.height = this.bounds.maxEntityHeight;
-    this.max = Math.max( this.height, this.width );
-    //Set A Distance To Cover Per Trigger
-    this.distancePerTrigger = {
-      x: Math.ceil( ( Drawing._bounds.maxX ) / ( this.width ) ),
-      y: Math.ceil( ( Drawing._bounds.maxY ) / ( this.height ) )
-    };
-    //override pre defined initial positions, and place this player, bang at the center of the bottom most layer
-    this.x = ( Drawing._bounds.maxX ) / 2;
-    this.y = Drawing._bounds.maxY - this.bounds.maxEntityHeight;
-    [ this.movingUp, this.movingDown, this.movingLeft, this.movingRight ] = [ false, false, false, false ];
-    this.rescue = false;
-    this.hasFetchedImperilled = false;
-    this.notAlreadyDocked = true;
-    this.hasReturned = false;
-    this.isReturning = false;
-    this.currentTilt = 0;
-  }
-  /*
-   *@manifest renders and activates the player
-   */
-  manifest() {
-    this.quadrantsBoundTo = this.mapToQuadrant();
-    //render this player
-    this.render();
-    this.interrupts.listen();
-  }
-  /*
-   *@hasCollided extends the super's hasCollided behaviour, with some exceptions
-   */
-  hasCollided() {
-    const outOfCollidableSpace = ( this.y >= this.bounds.esMaxY );
-    const entitiesCollidedWith = super.hasCollided();
-    const noCollision = ( entitiesCollidedWith.size < 1 );
-    const blackholeCollision = ( entitiesCollidedWith.size == 1 ) && ( entitiesCollidedWith[ Symbol.iterator ]()
-      .next()
-      .value.constructor.name == 'Blackhole' );
-    if ( outOfCollidableSpace || noCollision || blackholeCollision ) {
-      return false;
-    }
-    this.interrupts.deafen();
-    return true;
-  }
-  /*
-   *@hasStoppedPropogations checks if all interpolated motions have stopped
-   */
-  hasStoppedPropogations() {
-    return ( this.movingUp === false && this.movingDown === false && this.movingLeft === false && this.movingRight === false );
-  }
-  isReadyToRescue() {
-    return ( this.y < this.bounds.esMinY && ( 1.41 <= this.currentTilt && this.currentTilt <= 1.92 ) );
-  }
-  beginRescue() {
-    const X = this.rescue.x;
-    let threshold = Math.abs( X - this.x );
-    const dx = ( X > this.x ) ? this.distancePerTrigger.x : this.distancePerTrigger.x * -1;
-    const dy = 0;
-    let animation;
-    const animate = () => {
-      animation = window.requestAnimationFrame( animate );
-      if ( threshold <= this.rescue.width / 4 ) {
-        window.cancelAnimationFrame( animation );
-        this.hasFetchedImperilled = true;
-        this.rescue.hasBeenFetched = true;
-        this.rescue.tow = Object.create( this );
-      } else {
-        this.interpolatedMotion( dx, dy );
-        threshold = Math.abs( X - this.x );
-      }
-    };
-    this.notAlreadyDocked = false;
-    window.requestAnimationFrame( animate );
-  }
-  finishRescue() {
-    const X = Drawing._bounds.maxX / 2;
-    let threshold = Math.abs( X - this.x );
-    const dx = ( X > this.x ) ? this.distancePerTrigger.x : this.distancePerTrigger.x * -1;
-    const dy = 0;
-    let animation;
-    const animate = () => {
-      animation = window.requestAnimationFrame( animate );
-      if ( threshold <= this.distancePerTrigger.x ) {
-        window.cancelAnimationFrame( animation );
-        this.hasReturned = true;
-      } else {
-        this.interpolatedMotion( dx, dy );
-        threshold = Math.abs( X - this.x );
-      }
-    };
-    this.isReturning = true;
-    this.y = Drawing.bounds.maxY - this.height;
-    this.render();
-    this.interrupts.deafen();
-    window.requestAnimationFrame( animate );
-  }
-  /*
-   *@registerInterruptHandlers registers a set of acceptable motion triggers
-   *And Also, activates them.
-   */
-  registerInterruptHandlers() {
-    //define generic event handlers for each acceptable trigger
-    const arrowUpHandler = () => {
-      //the player will not move horizontally
-      const dx = 0;
-      //player has to move a certain predefined distance per trigger
-      const dy = this.distancePerTrigger.y * -1;
-      //threshold is, the current vertical postion of the player, minus the distance per trigger to cover
-      const threshold = this.y + dy;
-      let animation;
-      const animate = () => {
-        animation = window.requestAnimationFrame( animate );
-        //Only move down, if the player's current vertical position is yet to cross the threshold
-        //And, if the threshold itself, is not beyond the canvas
-        if ( this.y <= threshold || threshold < ( Drawing._bounds.minY ) ) {
-          window.cancelAnimationFrame( animation );
-          this.movingUp = false;
-        } else {
-          this.interpolatedMotion( dx, dy );
-          this.movingUp = true;
-        }
-      };
-      if ( !this.movingUp ) {
-        if ( this.y >= Drawing._bounds.minY + this.bounds.maxEntityHeight ) this.moves++;
-        if ( this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled ) {
-          this.beginRescue();
-        } else if ( this.hasFetchedImperilled && !this.isReturning && this.y >= this.bounds.esMaxY - this.distancePerTrigger.y ) {
-          this.finishRescue();
-        } else
-          window.requestAnimationFrame( animate );
-      }
-      return false;
-    };
-    const arrowDownHandler = () => {
-      //the player will not move horizontally
-      const dx = 0;
-      //player has to move a certain predefined distance per trigger
-      const dy = this.distancePerTrigger.y;
-      //threshold is, the current vertical postion of the player, plus the distance per trigger to cover
-      const threshold = this.y + dy;
-      let animation;
-      const animate = () => {
-        animation = window.requestAnimationFrame( animate );
-        //Only move down, if the player's current vertical position is yet to cross the threshold
-        //And, if the threshold itself, is not beyond the canvas
-        if ( this.y >= threshold || threshold > ( Drawing._bounds.maxY - this.height ) ) {
-          window.cancelAnimationFrame( animation );
-          this.movingDown = false;
-        } else {
-          this.interpolatedMotion( dx, dy );
-          this.movingDown = true;
-        }
-      };
-      if ( !this.movingDown ) {
-        if ( this.moves > 0 && this.y < Drawing._bounds.maxY - this.bounds.maxEntityHeight ) this.moves++;
-        if ( this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled ) {
-          this.beginRescue();
-        } else if ( this.hasFetchedImperilled && !this.isReturning && this.y >= this.bounds.esMaxY - this.distancePerTrigger.y ) {
-          this.finishRescue();
-        } else
-          window.requestAnimationFrame( animate );
-      }
-      return false;
-    };
-    const arrowRightHandler = () => {
-      //player will not move vertically
-      const dy = 0;
-      //player has to move a certain predefined distance per trigger
-      let dx = this.distancePerTrigger.x;
-      //threshold is, the current horizontal postion of the player, plus the distance per trigger to cover
-      let threshold = this.x + dx;
-      //if the threshold to move to, is beyond the canvas, reset the player's horizontal position to a minimum
-      if ( threshold > ( Drawing._bounds.maxX - this.width / 2 ) ) {
-        this.x = Drawing._bounds.minX - this.width / 2;
-        //reset threshold
-        threshold = this.x + this.width / 2;
-      }
-      let animation;
-      const animate = () => {
-        animation = window.requestAnimationFrame( animate );
-        //Only move, if the threshold, is greater than the current horizontal position of the plaayer
-        if ( this.x < threshold ) {
-          this.movingRight = true;
-          this.interpolatedMotion( dx, dy );
-        } else {
-          window.cancelAnimationFrame( animation );
-          this.movingRight = false;
-        }
-      };
-      if ( !this.movingRight ) {
-        this.moves++;
-        if ( this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled ) {
-          this.beginRescue();
-        } else
-          window.requestAnimationFrame( animate );
-      }
-      return false;
-    };
-    const arrowLeftHandler = () => {
-      //player will not move vertically
-      const dy = 0;
-      //player has to move a certain predefined distance per trigger
-      let dx = this.distancePerTrigger.x * -1;
-      //threshold is, the current horizontal postion of the player, plus the distance per trigger to cover
-      let threshold = this.x + dx;
-      //if the threshold to move to, is beyond the canvas, reset the player's horizontal position to a minimum
-      if ( threshold < ( Drawing._bounds.minX - this.width / 2 ) ) {
-        this.x = Drawing._bounds.maxX;
-        //reset threshold
-        threshold = this.x - this.width / 2;
-      }
-      let animation;
-      const animate = () => {
-        animation = window.requestAnimationFrame( animate );
-        //Only move, if the threshold, is greater than the current horizontal position of the plaayer
-        if ( this.x > threshold ) {
-          this.movingLeft = true;
-          this.interpolatedMotion( dx, dy );
-        } else {
-          window.cancelAnimationFrame( animation );
-          this.movingLeft = false;
-        }
-      };
-      if ( !this.movingLeft ) {
-        this.moves++;
-        if ( this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled ) {
-          this.beginRescue();
-        } else
-          window.requestAnimationFrame( animate );
-      }
-      return false;
-    };
-    const arrowRightAltHandler = () => {
-      if ( this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled ) {
-        this.beginRescue();
-      } else
-        this.rotate( 'right' );
-    };
-    const arrowLeftAltHandler = () => {
-      if ( this.isReadyToRescue() && this.notAlreadyDocked && !this.hasFetchedImperilled ) {
-        this.beginRescue();
-      } else
-        this.rotate();
-    };
-    //define a map of acceptable keyboard triggers to action on that trigger
-    //This helps to define a particular player motion on the compositing canvas
-    const actionableTriggers = new Map();
-    const unactionables = new Set( [ 'Control', 'Tab', 'Shift', 'Alt' ] );
-    actionableTriggers.set( 'ArrowUp', arrowUpHandler );
-    actionableTriggers.set( 'ArrowDown', arrowDownHandler );
-    actionableTriggers.set( 'ArrowLeft', arrowLeftHandler );
-    actionableTriggers.set( 'ArrowRight', arrowRightHandler );
-    actionableTriggers.set( 'altArrowLeft', arrowLeftAltHandler );
-    actionableTriggers.set( 'altArrowRight', arrowRightAltHandler );
-    //A trigger, has two states. On, or Off. initialize it to off.
-    //On is when, an acceptable key is pressed
-    //Off is when, the  previously pressed key is released
-    let kbdTrigger = false;
-    let MatchableAlternateTrigger = false;
-    //define an event chain to handle
-    //A handler for key up events
-    /*
-     *@keyUp is to be used, only after a keyDown, and not separately
-     *Or, to put it another way, this should not individually be triggered, and is explicitly
-     *called by a keyDown handler when a keydown event occurs
-     */
-    const keyUp = ( keyUpEvent ) => {
-      let AlternateTrigger = false;
-      const key = keyUpEvent.key;
-      //rerecord alt
-      const alt = keyUpEvent.altKey;
-      if ( alt ) {
-        keyUpEvent.preventDefault();
-        AlternateTrigger = `alt${key}`;
-      }
-      //If the user used a plain keyboard action (one of the arrow keys)
-      //Recognize the trigger, and set it off
-      const normalTrigger = !unactionables.has( key ) && key === kbdTrigger && !AlternateTrigger;
-      if ( normalTrigger ) {
-        const triggerAction = actionableTriggers.get( kbdTrigger ) || false;
-        if ( triggerAction ) {
-          triggerAction();
-        }
-        //release pressed trigger
-        kbdTrigger = false;
-      }
-      //If the user pressed 'ALT' + 'KBD ARROW KEY'
-      //recognize the alternate trigger and set it off
-      const altTrigger = AlternateTrigger && MatchableAlternateTrigger && ( AlternateTrigger === MatchableAlternateTrigger );
-      if ( altTrigger ) {
-        const triggerAltAction = actionableTriggers.get( AlternateTrigger ) || false;
-        if ( triggerAltAction ) {
-          triggerAltAction();
-        }
-        //release AlternateTrigger
-        MatchableAlternateTrigger = false;
-        AlternateTrigger = false;
-      }
-      return false;
-    };
-    const addkeyUpListener = () => {
-      document.addEventListener( 'keyup', keyUp, false );
-    };
-    const removekeyUpListener = () => {
-      document.removeEventListener( 'keyup', keyUp, false );
-    };
-    //A keyDown handler
-    const keyDown = ( keyDownEvent ) => {
-      //which key?
-      const key = keyDownEvent.key;
-      //was alt pressed too?
-      const alt = keyDownEvent.altKey;
-      //if yes, prevent default action for alt key
-      if ( alt ) {
-        keyDownEvent.preventDefault();
-        MatchableAlternateTrigger = `alt${key}`;
-      }
-      if ( key == 'ArrowDown' || key == 'ArrowUp' ) {
-        keyDownEvent.preventDefault();
-      }
-      //Only When a new key is pressed, record events
-      //If the user holds down a particular key, for example, do not
-      //record that event
-      //Also, do not process unactionables alone, unless they are pressed with an option
-      if ( actionableTriggers.has( key ) && ( key !== kbdTrigger ) && !unactionables.has( key ) ) {
-        //record action on keyboard, identify task
-        kbdTrigger = key;
-        addkeyUpListener();
-      }
-      return false;
-    };
-    const addKeyDownListener = () => {
-      document.addEventListener( 'keydown', keyDown, false );
-    };
-    const removeKeyDownListener = () => {
-      removekeyUpListener();
-      document.removeEventListener( 'keydown', keyDown, false );
-    };
-    //Activate Panel
-    const cpanelUp = document.querySelector( '#ctrl-up' );
-    const cpanelDown = document.querySelector( '#ctrl-down' );
-    const cpanelRight = document.querySelector( '#ctrl-right' );
-    const cpanelLeft = document.querySelector( '#ctrl-left' );
-    const listen = () => {
-      addKeyDownListener();
-      cpanelUp.addEventListener( 'click', arrowUpHandler, false );
-      cpanelDown.addEventListener( 'click', arrowDownHandler, false );
-      cpanelLeft.addEventListener( 'click', arrowLeftHandler, false );
-      cpanelRight.addEventListener( 'click', arrowRightHandler, false );
-    };
-    const deafen = () => {
-      removeKeyDownListener();
-      cpanelUp.removeEventListener( 'click', arrowUpHandler, false );
-      cpanelDown.removeEventListener( 'click', arrowDownHandler, false );
-      cpanelLeft.removeEventListener( 'click', arrowLeftHandler, false );
-      cpanelRight.removeEventListener( 'click', arrowRightHandler, false );
-    };
-
-    return {
-      listen: listen,
-      deafen: deafen
-    };
-  }
-}
-/*
  *Blackhole is an Entity. It has a generic entity behaviour, and some of its own
  */
 class Blackhole extends Entity {
@@ -736,6 +6,9 @@ class Blackhole extends Entity {
     super();
     this.avatar_id = avatar_id;
   }
+  /*
+   *@init sets an avatar, position, size and gobbliness of a blackhole
+   */
   init( avatar ) {
     super.init();
     this.avatar = avatar;
@@ -755,12 +28,18 @@ class Blackhole extends Entity {
     //the width should not exceed half the entity space, so that the blackhole is bound by the entity space
     this.gainThreshold = ( this.bounds.esMaxY - this.bounds.esMinY ) / 2;
     this.quadrantsBoundTo = this.mapToQuadrant();
+    //There is a core, and then an event horizon
+    //Define the width of the core to be the current initial width
+    //plus a fraction of space
     this.core = {
       width: this.width + 10,
       height: this.height + 10
     };
     return this;
   }
+  /*
+   *@encircle creates gobbly illusions and an aura of a feeding blackhole
+   */
   encircle( color = '#ffffff', width = 2 ) {
     this.composite.twoDimContext.lineWidth = width;
     this.composite.twoDimContext.strokeStyle = color;
@@ -798,15 +77,16 @@ class Blackhole extends Entity {
     this.height = this.width;
     //if the width gained is equal or more than the threshold, oscillate
     if ( this.width >= this.gainThreshold ) {
-      //define the maximum Y positions the blackhole should oscillate between
+      //the blackhole is now at it's largest possible size
+      //define an event horizon
       this.max = this.max || Math.max( this.height, this.width );
       this.min = this.min || Math.min( this.height, this.width );
       this.eventHorizon = {
         width: this.width + this.width / 10,
         height: this.height + this.height / 10
       };
-      //define a threshold for oscillation. The blackhole should only oscillate between the center
-      //of the entity space, and the minimum y of the entity space
+      /*define a threshold for oscillation. The blackhole should only oscillate between the *center of the entity space, and the minimum y of the entity space
+       */
       this.oscillationThreshold = this.oscillationThreshold || ( this.bounds.esMaxY / 2 - this.max / 2 );
       //define an oscillation frequency
       //the blackhole should oscillate, by a factor of time
@@ -840,6 +120,7 @@ class Blackhole extends Entity {
         this.pan++;
       }
     } else {
+      //Until the blackhole feeds on the star, visually correlate the effect
       this.encircle( 'orange', 10 );
     }
     //map to quadrants of the Drawing
@@ -847,10 +128,13 @@ class Blackhole extends Entity {
     //If the blakhole has covered the canvas length n number of times,
     //do something else, like start consuming matter
     if ( this.pan >= 1 ) {
+      //collect all consumable entities
       const consumables = this.hasCollided();
       if ( consumables.size > 0 ) {
         for ( const consumable of consumables ) {
+          //DO not consume a player, they are intelligent enough to avoid suction
           if ( consumable.constructor.name == 'Player' ) {
+            //instead, show them who is the boss, by randomly shuffling their coordinates
             consumable.x += 2 * this.max;
             consumable.y = consumable.y - consumable.height / 2;
             if ( consumable.x > Drawing._bounds.maxX - consumable.width ) {
@@ -861,11 +145,15 @@ class Blackhole extends Entity {
             consumable.quadrantsBoundTo = consumable.mapToQuadrant();
             consumable.affectedByBlackhole++;
           } else {
+            //Yay! we can feed on these rocks
             consumable.width -= ( consumable.width / 100 ) * Time;
             consumable.height -= ( consumable.height / 100 ) * Time;
+            //do not just feed, also throw them across space
+            //like a slingshot, and invert their rotations
             consumable.x += this.max;
             consumable.adapt();
             consumable.rotate( 'right', this.currentTilt, false );
+            //Why stop there? Also tamper their speeds
             const dx = ( consumable.width ) / Drawing._bounds.maxX;
             const sillyfactor = 4 * Math.round( ( dx * factorOfTime ) * 100 ) / 100;
             this.distancePerSecond.x += sillyfactor;
@@ -873,9 +161,10 @@ class Blackhole extends Entity {
         }
       }
     }
-    //while all the above is happening, rotate the blackhole
+    //while all the above is happening, keep rotating
     const angle = Math.PI / 180;
     this.rotate( 'right', angle, false );
+    //Create an impression of constant feeding
     this.encircle();
   }
 
