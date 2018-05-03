@@ -133,15 +133,6 @@ Space Odyssey
 
 - [ ] **Make the game playable on extra small screens**
 
-## Self Assessment
-##### Also A Note to the Reviewer
-
-Criteria  |Qualification   |  Comment
---|---|--
- Error Free | The game functions correctly and runs error free <ul><li>Player can not move off screen</li><li>Vehicles cross the screen</li><li>Vehicle-player collisions happen logically (not too early or too late)</li><li>Vehicle-player collision resets the game</li><li>something happens when a player wins</li></ul> |The game **IS** error free. <ul><li>Player **Does not** move off screen</li><li>I Really Do not know how to perceive this, the rubric needs **SOME Clarity**. However, Assuming, that the player can move across the screen, without intentionally colliding, means, that the code should meet this spec.</li><li>A collision between the Player, and an entity **Unless** the entity is a **Blackhole**, Does reset the game. Regarding How I code the behaviour on colliding with the blackhole, It is a **Personal** *Whim*</li><li>A Statistic is shown, On level completion</li></ul>
- Object Oriented Code | Game objects (player and vehicles) are implemented using JavaScript object-oriented programming features.  | They very much *Are* Implemented on **Prototypal inheritance** / **The new `class` -> `extends` way**.
-  Comments| Comments are present and effectively explain longer code procedures. As a rule of thumb: describe what all custom functions and object methods do.  | If One glances through the code, One can easily see, that the comments outdo the code itself, in volume.Also, each decision to an approach is documented too. However, Some functions, that are hardly 10 lines or less, do not have extensive documentation.
- Code Quality |Code is formatted with consistent, logical, and easy-to-read formatting as described in the Udacity JavaScript Style Guide.   | **This is where, a Udacity Review comes handy**. **No Self Assessment Here**
 
 ## Playing the game
 
